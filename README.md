@@ -1,7 +1,7 @@
 # XyJax
+ -- Xy-pic extension for MathJax --
 
-## XyJax = Xy-pic extension for MathJax
-
+----
 XyJax is a almost Xy-pic compatible language extension for MathJax.
 
 This extension enable us to draw various graphs and diagrams.
@@ -35,9 +35,9 @@ But, this software is under development, so this release is alpha-quality (often
  In this case, [XyJax dir] = ~/work/sonoisa-XyJax-xxxxx
  
 3. Move the XyJax files into the MathJax directory.
- - [XyJax dir]/extensions/fp.js -> [MathJax dir]/extensions/fp.js
- - [XyJax dir]/extensions/TeX/xypic.js -> [MathJax dir]/extensions/TeX/xypic.js
- - [XyJax dir]/test/sample-xyjax.html -> [MathJax dir]/test/sample-xyjax.html
+ - [XyJax dir]/extensions/fp.js &rarr; [MathJax dir]/extensions/fp.js
+ - [XyJax dir]/extensions/TeX/xypic.js &rarr; [MathJax dir]/extensions/TeX/xypic.js
+ - [XyJax dir]/test/sample-xyjax.html &rarr; [MathJax dir]/test/sample-xyjax.html
    
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/fp.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/TeX/
