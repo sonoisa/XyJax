@@ -39,12 +39,17 @@ But, this software is under development, so this release is alpha-quality (often
  - [XyJax dir]/extensions/TeX/xypic.js &rarr; [MathJax dir]/extensions/TeX/xypic.js
  - [XyJax dir]/test/sample-xyjax.html &rarr; [MathJax dir]/test/sample-xyjax.html
    
+   eg.
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/fp.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/TeX/
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.0-xxxx/test/
    
+   ![moved files](http://sonoisa.github.com/xyjax/xyjax_images/Moved_XyJax_files.png)
+   
 4. Open [MathJax dir]/test/sample-xyjax.html with Firefox/Safari/Chrome.
- + You can see so-called commutative diagram, if XyJax works.
+ + If XyJax works, You can see so-called commutative diagram like this:
+ 
+   ![commutative diagram](http://sonoisa.github.com/xyjax/xyjax_images/CD.png)
 
 5. Install MathJax on your own server using the source code you created in step 3.
  - Follow the local installation instructions: http://www.mathjax.org/docs/2.0/installation.html
