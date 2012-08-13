@@ -25,10 +25,10 @@ But, this software is under development, so this release is alpha-quality (often
    
  In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.0-xxxx
  
-2. Download XyJax's source code.
- - Go to the download site (this page).
- - Click the Downloads button on the upper right side, and click Download zip (or tar.gz) button.
- - Extract the downloaded zip or tar.gz file to a directory (referred to as [XyJax dir]). e.g.
+2. Download XyJax source code.
+ - Go to the XyJax download site (this page).
+ - Click the Downloads button on the upper right side, and click Download zip or tar.gz button.
+ - Extract the downloaded file to a directory (referred to as [XyJax dir]). e.g.
 
    >     $ unzip  sonoisa-XyJax-xxxxx -d ~/work
    
