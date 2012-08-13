@@ -1,2 +1,18 @@
 
 .DS_Store
+*.swp
+
+/XyJax.xcodeproj
+/config/
+/docs/
+/fonts/
+/images/
+/jax/
+/unpacked/
+/test/
+*.js
+!/extensions/fp.js
+!/extensions/TeX/xypic.js
+!/test/sample-xyjax.html
+!/test/test-xyjax.html
+
