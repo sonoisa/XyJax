@@ -72,10 +72,14 @@ But, this software is under development, so this release is alpha-quality (often
  >     </script>
  >     <script type="text/javascript" src="../MathJax.js"></script>
 
-## Limitation
+## Present Limitation
 
 - Supported Browsers: Firefox, Safari, Chrome, Opera, Internet Explorer 9 (IE9 Standards Mode only)
-- Unsupported Browsers: Internet Explorer 8 or lower, etc...
+- Supported Math Renderer: HTML-CSS
+
+## Current Implementation Status
+
+- See http://sonoisa.github.com/xyjax/xyjax.html#ToDo
 
 ## Contact
 
