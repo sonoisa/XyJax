@@ -2303,7 +2303,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       svg.appendChild(this.drawArea);
       this.svg = svg;
-      this.bbox = undefined;
+      this.boundingBox = undefined;
     },
     stack: function () { return this._stack; },
     setHeight: function (height) {
@@ -2685,6 +2685,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  // TODO: frame extension対応のため、楕円を表現できるようにする。
   xypic.Frame.Circle = xypic.Frame.Subclass({
     Init: function (x, y, r) {
       this.x = x;
@@ -2749,7 +2750,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape = MathJax.Object.Subclass({
+  xypic.CurveShape = MathJax.Object.Subclass({
     velocity: function (t) {
       var dx = this.dpx(t);
       var dy = this.dpy(t);
@@ -2855,8 +2856,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         x2s[i] = x-dc;
         y2s[i] = y-ds;
       }
-      xypic.Shape.CubicBeziers.interpolation(ts, x1s, y1s).drawPrimitive(svg, "none");
-      xypic.Shape.CubicBeziers.interpolation(ts, x2s, y2s).drawPrimitive(svg, "none");
+      xypic.CurveShape.CubicBeziers.interpolation(ts, x1s, y1s).drawPrimitive(svg, "none");
+      xypic.CurveShape.CubicBeziers.interpolation(ts, x2s, y2s).drawPrimitive(svg, "none");
     },
     drawParallelDottedCurve: function (svg, spacing, vshift) {
       var px = 1/HTMLCSS.em, hpx = px/2;
@@ -2913,8 +2914,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         x2s[i] = x-dc;
         y2s[i] = y-ds;
       }
-      xypic.Shape.CubicBeziers.interpolation(ts, x1s, y1s).drawSkipped(svg);
-      xypic.Shape.CubicBeziers.interpolation(ts, x2s, y2s).drawSkipped(svg);
+      xypic.CurveShape.CubicBeziers.interpolation(ts, x1s, y1s).drawSkipped(svg);
+      xypic.CurveShape.CubicBeziers.interpolation(ts, x2s, y2s).drawSkipped(svg);
     },
     drawSquigCurve: function (svg, env, variant) {
       var thickness = HTMLCSS.length2em("0.15em");
@@ -3485,7 +3486,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     minSolutionOfCubicEq: function (a3, a2, a1, a0) {
       // find minimum solution t in [0, 1]
       if (a3 === 0) {
-        return xypic.Shape.minSolutionOfQuadEq(a2, a1, a0);
+        return xypic.CurveShape.minSolutionOfQuadEq(a2, a1, a0);
       }
       var b2 = a2/3/a3, b1 = a1/a3, b0 = a0/a3;
       var p = b2*b2-b1/3, q = -b0/2+b1*b2/2-b2*b2*b2;
@@ -3493,20 +3494,20 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (d === 0) {
         var s = Math.pow(q, 1/3);
         var t0 = 2*s-b2, t1 = -s-b2;
-        return xypic.Shape.minT(t0, t1);
+        return xypic.CurveShape.minT(t0, t1);
       } else if (d > 0) {
-        var u = q+xypic.Shape.sign(q)*Math.sqrt(d);
-        var r = xypic.Shape.sign(u)*Math.pow(Math.abs(u), 1/3);
+        var u = q+xypic.CurveShape.sign(q)*Math.sqrt(d);
+        var r = xypic.CurveShape.sign(u)*Math.pow(Math.abs(u), 1/3);
         var s = p/r;
         var t = r+s-b2;
-        return xypic.Shape.minT(t);
+        return xypic.CurveShape.minT(t);
       } else {
         var r = 2*Math.sqrt(p);
         var s = Math.acos(2*q/p/r);
         var t0 = r*Math.cos(s/3)-b2;
         var t1 = r*Math.cos((s+2*Math.PI)/3)-b2;
         var t2 = r*Math.cos((s+4*Math.PI)/3)-b2;
-        return xypic.Shape.minT(t0, t1, t2);
+        return xypic.CurveShape.minT(t0, t1, t2);
       }
     },
     minSolutionOfQuadEq: function (a2, a1, a0) {
@@ -3515,14 +3516,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (a1 === 0) {
           return (a0 === 0? 0 : undefined);
         }
-        return  xypic.Shape.minT(-a0/a1);
+        return  xypic.CurveShape.minT(-a0/a1);
       } else {
         var d = a1*a1-4*a0*a2;
         if (d >= 0) {
           var s = Math.sqrt(d);
           var tp = (-a1+s)/2/a2;
           var tm = (-a1-s)/2/a2;
-          return xypic.Shape.minT(tp, tm);
+          return xypic.CurveShape.minT(tp, tm);
         } else {
           return undefined;
         }
@@ -3530,7 +3531,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.QuadBezier = xypic.Shape.Subclass({
+  xypic.CurveShape.QuadBezier = xypic.CurveShape.Subclass({
     Init: function (cp0, cp1, cp2) {
       this.cp0 = cp0;
       this.cp1 = cp1;
@@ -3644,8 +3645,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var q2 = this.cp2;
       
       return [
-        xypic.Shape.QuadBezier(p0, p1, p2),
-        xypic.Shape.QuadBezier(q0, q1, q2)
+        xypic.CurveShape.QuadBezier(p0, p1, p2),
+        xypic.CurveShape.QuadBezier(q0, q1, q2)
       ]
     },
     shaveStart: function (frame) {
@@ -3654,7 +3655,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (edgeCPs === undefined) {
         return undefined;
       }
-      return xypic.Shape.QuadBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2]);
+      return xypic.CurveShape.QuadBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2]);
     },
     shaveEnd: function (frame) {
       var edgeCPs;
@@ -3662,7 +3663,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (edgeCPs === undefined) {
         return undefined;
       }
-      return xypic.Shape.QuadBezier(edgeCPs[2], edgeCPs[1], edgeCPs[0]);
+      return xypic.CurveShape.QuadBezier(edgeCPs[2], edgeCPs[1], edgeCPs[0]);
     },
     edgeControlPoints: function (frame, cp0, cp1, cp2) {
       if (frame.isPoint()) {
@@ -3699,19 +3700,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         var ts = [];
         if (x0 <= rx && (x1 >= rx || x2 >= rx)) {
-          t = xypic.Shape.minSolutionOfQuadEq(a2x, a1x, a0x-rx);
+          t = xypic.CurveShape.minSolutionOfQuadEq(a2x, a1x, a0x-rx);
           if (t !== undefined) { ts.push(t) }
         }
         if (x0 >= lx && (x2 <= lx || x1 <= lx)) {
-          t = xypic.Shape.minSolutionOfQuadEq(a2x, a1x, a0x-lx);
+          t = xypic.CurveShape.minSolutionOfQuadEq(a2x, a1x, a0x-lx);
           if (t !== undefined) { ts.push(t) }
         }
         if (y0 <= uy && (y1 >= uy || y2 >= uy)) {
-          t = xypic.Shape.minSolutionOfQuadEq(a2y, a1y, a0y-uy);
+          t = xypic.CurveShape.minSolutionOfQuadEq(a2y, a1y, a0y-uy);
           if (t !== undefined) { ts.push(t) }
         }
         if (y0 >= dy && (y2 <= dy || y1 <= dy)) {
-          t = xypic.Shape.minSolutionOfQuadEq(a2y, a1y, a0y-dy);
+          t = xypic.CurveShape.minSolutionOfQuadEq(a2y, a1y, a0y-dy);
           if (t !== undefined) { ts.push(t) }
         }
         if (ts.length === 0) {
@@ -3722,18 +3723,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       } else if (frame.isCircle()) {
         var cx = frame.x, cy = frame.y, r = frame.r, pi = Math.PI;
         
-        var arc0 = xypic.Shape.Segment.Arc(cx, cy, r, -pi, -pi/2);
-        var arc1 = xypic.Shape.Segment.Arc(cx, cy, r, -pi/2, 0);
-        var arc2 = xypic.Shape.Segment.Arc(cx, cy, r, 0, pi/2);
-        var arc3 = xypic.Shape.Segment.Arc(cx, cy, r, pi/2, pi);
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, r, -pi, -pi/2);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, r, -pi/2, 0);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, r, 0, pi/2);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, r, pi/2, pi);
         
-        var bezier = xypic.Shape.Segment.QuadBezier(xypic.Shape.QuadBezier(cp0, cp1, cp2), 0, 1);
+        var bezier = xypic.CurveSegment.QuadBezier(xypic.CurveShape.QuadBezier(cp0, cp1, cp2), 0, 1);
         
         var intersec = [];
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc0, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc1, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc2, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc3, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, bezier));
         
         if (intersec.length === 0) {
           return undefined;
@@ -3766,7 +3767,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.CubicBezier = xypic.Shape.Subclass({
+  xypic.CurveShape.CubicBezier = xypic.CurveShape.Subclass({
     Init: function (cp0, cp1, cp2, cp3) {
       this.cp0 = cp0;
       this.cp1 = cp1;
@@ -3910,8 +3911,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var q3 = this.cp3;
       
       return [
-        xypic.Shape.CubicBezier(p0, p1, p2, p3),
-        xypic.Shape.CubicBezier(q0, q1, q2, q3)
+        xypic.CurveShape.CubicBezier(p0, p1, p2, p3),
+        xypic.CurveShape.CubicBezier(q0, q1, q2, q3)
       ]
     },
     shaveStart: function (frame) {
@@ -3920,7 +3921,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (edgeCPs === undefined) {
         return undefined;
       }
-      return xypic.Shape.CubicBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2], edgeCPs[3]);
+      return xypic.CurveShape.CubicBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2], edgeCPs[3]);
     },
     shaveEnd: function (frame) {
       var edgeCPs;
@@ -3928,7 +3929,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (edgeCPs === undefined) {
         return undefined;
       }
-      return xypic.Shape.CubicBezier(edgeCPs[3], edgeCPs[2], edgeCPs[1], edgeCPs[0]);
+      return xypic.CurveShape.CubicBezier(edgeCPs[3], edgeCPs[2], edgeCPs[1], edgeCPs[0]);
     },
     edgeControlPoints: function (frame, cp0, cp1, cp2, cp3) {
       if (frame.isPoint()) {
@@ -3969,19 +3970,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         var ts = [];
         if (x0 <= rx && (x3 >= rx || x1 >= rx || x2 >= rx)) {
-          t = xypic.Shape.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-rx);
+          t = xypic.CurveShape.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-rx);
           if (t !== undefined) { ts.push(t) }
         }
         if (x0 >= lx && (x3 <= lx || x2 <= lx || x1 <= lx)) {
-          t = xypic.Shape.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-lx);
+          t = xypic.CurveShape.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-lx);
           if (t !== undefined) { ts.push(t) }
         }
         if (y0 <= uy && (y3 >= uy || y1 >= uy || y2 >= uy)) {
-          t = xypic.Shape.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-uy);
+          t = xypic.CurveShape.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-uy);
           if (t !== undefined) { ts.push(t) }
         }
         if (y0 >= dy && (y3 <= dy || y2 <= dy || y1 <= dy)) {
-          t = xypic.Shape.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-dy);
+          t = xypic.CurveShape.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-dy);
           if (t !== undefined) { ts.push(t) }
         }
         if (ts.length === 0) {
@@ -3992,18 +3993,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       } else if (frame.isCircle()) {
         var cx = frame.x, cy = frame.y, r = frame.r, pi = Math.PI;
         
-        var arc0 = xypic.Shape.Segment.Arc(cx, cy, r, -pi, -pi/2);
-        var arc1 = xypic.Shape.Segment.Arc(cx, cy, r, -pi/2, 0);
-        var arc2 = xypic.Shape.Segment.Arc(cx, cy, r, 0, pi/2);
-        var arc3 = xypic.Shape.Segment.Arc(cx, cy, r, pi/2, pi);
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, r, -pi, -pi/2);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, r, -pi/2, 0);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, r, 0, pi/2);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, r, pi/2, pi);
         
-        var bezier = xypic.Shape.Segment.CubicBezier(xypic.Shape.CubicBezier(cp0, cp1, cp2, cp3), 0, 1);
+        var bezier = xypic.CurveSegment.CubicBezier(xypic.CurveShape.CubicBezier(cp0, cp1, cp2, cp3), 0, 1);
         
         var intersec = [];
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc0, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc1, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc2, bezier));
-        intersec = intersec.concat(xypic.Shape.Segment.findIntersections(arc3, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, bezier));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, bezier));
         
         if (intersec.length === 0) {
           return undefined;
@@ -4042,7 +4043,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.CubicBeziers = xypic.Shape.Subclass({
+  xypic.CurveShape.CubicBeziers = xypic.CurveShape.Subclass({
     Init: function (cbs) {
       this.cbs = cbs;
       var n = this.cbs.length;
@@ -4107,7 +4108,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
         }
       }
-      return xypic.Shape.CubicBeziers(shaved);
+      return xypic.CurveShape.CubicBeziers(shaved);
     },
     shaveEnd: function (frame) {
       var reversedShaved = [];
@@ -4126,15 +4127,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           }
         }
       }
-      return xypic.Shape.CubicBeziers(reversedShaved.reverse());
+      return xypic.CurveShape.CubicBeziers(reversedShaved.reverse());
     },
     divide: function (t) {
       if (t < 0 || t > 1) {
         throw Error("illegal cubic Bezier parameter t:"+t);
       } else if (t === 0) {
-        return [xypic.Shape.CubicBeziers([]), this];
+        return [xypic.CurveShape.CubicBeziers([]), this];
       } else if (t === 1) {
-        return [this, xypic.Shape.CubicBeziers([])];
+        return [this, xypic.CurveShape.CubicBeziers([])];
       }
       
       var n = this.cbs.length;
@@ -4147,7 +4148,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var divB = cb.divide(s);
       divS.push(divB[0]);
       divE.unshift(divB[1]);
-      return [xypic.Shape.CubicBeziers(divS), xypic.Shape.CubicBeziers(divE)];
+      return [xypic.CurveShape.CubicBeziers(divS), xypic.CurveShape.CubicBeziers(divE)];
     },
     countOfSegments: function () { return this.cbs.length; },
     drawPrimitive: function (svg, dasharray) {
@@ -4182,25 +4183,25 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   },{
     interpolation: function (ts, xs, ys) {
-      var x12 = xypic.Shape.CubicBeziers.cubicSplineInterpolation(ts, xs);
+      var x12 = xypic.CurveShape.CubicBeziers.cubicSplineInterpolation(ts, xs);
       var x1 = x12[0];
       var x2 = x12[1];
       
-      var y12 = xypic.Shape.CubicBeziers.cubicSplineInterpolation(ts, ys);
+      var y12 = xypic.CurveShape.CubicBeziers.cubicSplineInterpolation(ts, ys);
       var y1 = y12[0];
       var y2 = y12[1];
       
       var i, n = ts.length;
       var beziers = new Array(n-1);
       for (i = 0; i < n-1; i++) {
-        beziers[i] = xypic.Shape.CubicBezier(
+        beziers[i] = xypic.CurveShape.CubicBezier(
           xypic.Frame.Point(xs[i], ys[i]),
           xypic.Frame.Point(x1[i], y1[i]),
           xypic.Frame.Point(x2[i], y2[i]),
           xypic.Frame.Point(xs[i+1], ys[i+1])
         )
       }
-      return xypic.Shape.CubicBeziers(beziers);
+      return xypic.CurveShape.CubicBeziers(beziers);
     },
     cubicSplineInterpolation: function (ts, xs) {
       var n = ts.length-1;
@@ -4245,7 +4246,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.CubicBSpline = xypic.Shape.Subclass({
+  xypic.CurveShape.CubicBSpline = xypic.CurveShape.Subclass({
     Init: function (s, intCps, e) {
       if (intCps.length < 1) {
         throw Error("the number of internal control points of cubic B-spline must be greater than or equal to 1");
@@ -4358,7 +4359,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var p1 = xypic.Frame.Point(p1x, p1y);
       var p2 = xypic.Frame.Point(p2x, p2y);
       var p3 = xypic.Frame.Point(p3x, p3y);
-      var cb = xypic.Shape.CubicBezier(p0, p1, p2, p3);
+      var cb = xypic.CurveShape.CubicBezier(p0, p1, p2, p3);
       cbs.push(cb);
       
       var len = this.cps.length - 1;
@@ -4380,7 +4381,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         p1 = xypic.Frame.Point(p1x, p1y);
         p2 = xypic.Frame.Point(p2x, p2y);
         p3 = xypic.Frame.Point(p3x, p3y);
-        cb = xypic.Shape.CubicBezier(p0, p1, p2, p3);
+        cb = xypic.CurveShape.CubicBezier(p0, p1, p2, p3);
         cbs.push(cb);
       }
       
@@ -4398,7 +4399,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       p1 = xypic.Frame.Point(p1x, p1y);
       p2 = xypic.Frame.Point(p2x, p2y);
       p3 = xypic.Frame.Point(p3x, p3y);
-      cb = xypic.Shape.CubicBezier(p0, p1, p2, p3);
+      cb = xypic.CurveShape.CubicBezier(p0, p1, p2, p3);
       cbs.push(cb);
       
       return cbs;
@@ -4406,7 +4407,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     countOfSegments: function () { return this.cps.length - 1; }
   });
   
-  xypic.Shape.Segment = MathJax.Object.Subclass({
+  xypic.CurveSegment = MathJax.Object.Subclass({
     bezierFatLine: function (n) {
       var p0 = this.cps[0], pn = this.cps[n];
       var a, b, c;
@@ -4517,8 +4518,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   }, {
     findIntersections: function (segment0, segment1) {
-      var n = xypic.Shape.Segment.maxIterations;
-      var acc = xypic.Shape.Segment.goalAccuracy;
+      var n = xypic.CurveSegment.maxIterations;
+      var acc = xypic.CurveSegment.goalAccuracy;
       var queue = [[segment0, segment1, false]];
       var i = 0;
       var intersections = [];
@@ -4573,7 +4574,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     goalAccuracy: 1e-4
   });
   
-  xypic.Shape.Segment.Line = xypic.Shape.Segment.Subclass({
+  xypic.CurveSegment.Line = xypic.CurveSegment.Subclass({
     Init: function (p0, p1, tmin, tmax) {
       this.p0 = p0;
       this.p1 = p1;
@@ -4603,7 +4604,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return {min:[a, b, c], max:[a, b, c]};
     },
     clip: function (tmin, tmax) {
-      return xypic.Shape.Segment.Line(this.p0, this.p1, tmin, tmax);
+      return xypic.CurveSegment.Line(this.p0, this.p1, tmin, tmax);
     },
     clippedRange: function (lineMin, lineMax) {
       var ps = new Array(2);
@@ -4627,7 +4628,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
 
-  xypic.Shape.Segment.QuadBezier = xypic.Shape.Segment.Subclass({
+  xypic.CurveSegment.QuadBezier = xypic.CurveSegment.Subclass({
     Init: function (bezier, tmin, tmax) {
       this.bezier = bezier;
       this.tmin = tmin;
@@ -4644,7 +4645,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     paramLength: function () { return this.tmax - this.tmin; },
     fatLine: function () { return this.bezierFatLine(2); },
     clip: function (tmin, tmax) {
-      return xypic.Shape.Segment.QuadBezier(this.bezier, tmin, tmax);
+      return xypic.CurveSegment.QuadBezier(this.bezier, tmin, tmax);
     },
     clippedRange: function (lineMin, lineMax) {
       return this.clippedLineRange(this.cps, lineMin, lineMax);
@@ -4671,7 +4672,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.Segment.CubicBezier = xypic.Shape.Segment.Subclass({
+  xypic.CurveSegment.CubicBezier = xypic.CurveSegment.Subclass({
     Init: function (bezier, tmin, tmax) {
       this.bezier = bezier;
       this.tmin = tmin;
@@ -4692,7 +4693,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     paramLength: function () { return this.tmax - this.tmin; },
     fatLine: function () { return this.bezierFatLine(3); },
     clip: function (tmin, tmax) {
-      return xypic.Shape.Segment.CubicBezier(this.bezier, tmin, tmax);
+      return xypic.CurveSegment.CubicBezier(this.bezier, tmin, tmax);
     },
     clippedRange: function (lineMin, lineMax) {
       return this.clippedLineRange(this.cps, lineMin, lineMax);
@@ -4719,7 +4720,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.Shape.Segment.Arc = xypic.Shape.Segment.Subclass({
+  xypic.CurveSegment.Arc = xypic.CurveSegment.Subclass({
     Init: function (x, y, r, angleMin, angleMax) {
       this.x = x;
       this.y = y;
@@ -4749,7 +4750,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return {min:Lmin, max:Lmax};
     },
     clip: function (angleMin, angleMax) {
-      return xypic.Shape.Segment.Arc(this.x, this.y, this.r, angleMin, angleMax);
+      return xypic.CurveSegment.Arc(this.x, this.y, this.r, angleMin, angleMax);
     },
     clippedRange: function (lineMin, lineMax) {
       var x = this.x, y = this.y, r = this.r, angleMin = this.angleMin, angleMax = this.angleMax;
@@ -4867,7 +4868,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   xypic.MostRecentLine.None = xypic.MostRecentLine.Subclass({
     Init: function () {}, 
     isDefined: false,
-    segment: function () { return []; }
+    segments: function () { return []; }
   });
   
   xypic.MostRecentLine.Line = xypic.MostRecentLine.Subclass({
@@ -4918,7 +4919,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
     },
     segments: function () {
-      return [xypic.Shape.Segment.Line(this.p, this.c, 0, 1)];
+      return [xypic.CurveSegment.Line(this.p, this.c, 0, 1)];
     }
   });
   
@@ -4969,7 +4970,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return {pos:pos, angle:angle};
     },
     segments: function () {
-      return [xypic.Shape.Segment.QuadBezier(this.origBezier, 0, 1)];
+      return [xypic.CurveSegment.QuadBezier(this.origBezier, 0, 1)];
     }
   });
   
@@ -5023,7 +5024,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return {pos:pos, angle:angle};
     },
     segments: function () {
-      return [xypic.Shape.Segment.CubicBezier(this.origBezier, 0, 1)];
+      return [xypic.CurveSegment.CubicBezier(this.origBezier, 0, 1)];
     }
   });
   
@@ -5079,7 +5080,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var segments = new Array(this.origBeziers.length);
       var n = segments.length;
       for (var i = 0; i < n; i++) {
-        segments[i] = xypic.Shape.Segment.CubicBezier(this.origBezier, i/n, (i+1)/n);
+        segments[i] = xypic.CurveSegment.CubicBezier(this.origBezier, i/n, (i+1)/n);
       }
       return segments;
     }
@@ -5240,7 +5241,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     popPos: function () {
       if (this.stack.isEmpty) {
-        throw Error("cannot pop from an empty stack");
+        throw Error("cannot pop from the empty stack");
       } else {
         var pos = this.stack.head;
         this.stack = this.stack.tail;
@@ -5500,7 +5501,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       for (var i = 0; i < thisSegs.length; i++) {
         for (var j = 0; j < thatSegs.length; j++) {
-          intersec = intersec.concat(xypic.Shape.Segment.findIntersections(thisSegs[i], thatSegs[j]));
+          intersec = intersec.concat(xypic.CurveSegment.findIntersections(thisSegs[i], thatSegs[j]));
         }
       }
       
@@ -6501,7 +6502,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           }
           
         case 1:
-          var origBezier = xypic.Shape.QuadBezier(s, controlPoints[0], e);
+          var origBezier = xypic.CurveShape.QuadBezier(s, controlPoints[0], e);
           var shavePBezier = origBezier.shaveStart(s);
           var shavePCBezier;
           if (shavePBezier !== undefined) {
@@ -6518,7 +6519,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
           
         case 2:
-          var origBezier = xypic.Shape.CubicBezier(s, controlPoints[0], controlPoints[1], e);
+          var origBezier = xypic.CurveShape.CubicBezier(s, controlPoints[0], controlPoints[1], e);
           var shavePBezier = origBezier.shaveStart(s);
           var shavePCBezier;
           if (shavePBezier !== undefined) {
@@ -6537,8 +6538,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
           
         default:
-          var spline = xypic.Shape.CubicBSpline(s, controlPoints, e);
-          var origBeziers = xypic.Shape.CubicBeziers(spline.toCubicBeziers());
+          var spline = xypic.CurveShape.CubicBSpline(s, controlPoints, e);
+          var origBeziers = xypic.CurveShape.CubicBeziers(spline.toCubicBeziers());
           var shavePBeziers = origBeziers.shaveStart(s);
           var shavePCBeziers = shavePBeziers.shaveEnd(e);
           
