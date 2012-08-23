@@ -6433,6 +6433,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var ea = this.endPointDegree(context, sa);
       var da = ea - sa;
       da = (da < 0? da + 360 : da);
+      if (da === 0) {
+        return xypic.Shape.none;
+      }
       
       var large, flip;
       if (this.orient === "^") {
