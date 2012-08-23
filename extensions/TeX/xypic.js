@@ -2242,7 +2242,25 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   var VMLNS = "urn:schemas-microsoft-com:vml";
   var vmlns = "mjxvml";
   
-  var em2px = function (n) { return Math.round(n * HTMLCSS.em * 100)/100; }
+  var em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
+  
+  var memoize = function (object, funcName) {
+    var func = object[funcName];
+    var memo = function () {
+        var value = func.call(this);
+        var constFunc = function () {
+            return value;
+        }
+        constFunc.reset = reset;
+        object[funcName] = constFunc;
+        return value;
+    }
+    var reset = function () {
+        object[funcName] = memo;
+    }
+    memo.reset = reset;
+    reset();
+  }
   
   var svgForDebug;
   var svgForTestLayout;
@@ -2319,33 +2337,81 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     extendBoundingBox: function (boundingBox) {
       this.boundingBox = xypic.Frame.combineRect(this.boundingBox, boundingBox);
+    },
+    getOrigin: function () {
+      return { x:0, y:0 };
     }
   });
+  
   xypic.Graphics.SVG.Transform = MathJax.Object.Subclass({
     Init: function (transform) {
-      this.transform = (transform || "");
+      this.transform = transform || FP.List.empty;
     },
     translate: function (x, y) {
       return xypic.Graphics.SVG.Transform(
-        this.transform+" translate("+em2px(x)+","+em2px(-y)+")")
+        this.transform.append(xypic.Graphics.SVG.Transform.Translate(x, y))
+      );
     },
     rotateDegree: function (degree) {
       return xypic.Graphics.SVG.Transform(
-        this.transform+" rotate("+(-degree)+")");
+        this.transform.append(xypic.Graphics.SVG.Transform.Rotate(degree / 180 * Math.PI))
+      );
     },
     rotateRadian: function (radian) {
       return xypic.Graphics.SVG.Transform(
-        this.transform+" rotate("+(-180*radian/Math.PI)+")");
+        this.transform.append(xypic.Graphics.SVG.Transform.Rotate(radian))
+      );
     },
     toString: function () {
-      return this.transform;
+      var form = "";
+      this.transform.foreach(function (tr) { form += tr.toTranslateForm() });
+      return form;
+    },
+    apply: function (x, y) {
+      var o = { x:x, y:y };
+      this.transform.foreach(function (tr) { o = tr.apply(o.x, o.y) });
+      return o;
     }
   });
+  
+  xypic.Graphics.SVG.Transform.Translate = MathJax.Object.Subclass({
+    Init: function (dx, dy) {
+      this.dx = dx;
+      this.dy = dy;
+    },
+    apply: function (x, y) {
+      return { x:x + this.dx, y:y - this.dy };
+    },
+    toTranslateForm: function () {
+      return "translate(" + em2px(this.dx) + "," + em2px(-this.dy) + ") ";
+    }
+  });
+  
+  xypic.Graphics.SVG.Transform.Rotate = MathJax.Object.Subclass({
+    Init: function (radian) {
+      this.radian = radian;
+    },
+    apply: function (x, y) {
+      var c = Math.cos(this.radian);
+      var s = Math.sin(this.radian);
+      return { x:c * x + s * y, y:-s * x + c * y };
+    },
+    toTranslateForm: function () {
+      return "rotate(" + (-180 * this.radian / Math.PI) + ") ";
+    }
+  });
+  
   xypic.Graphics.SVG.Group = xypic.Graphics.SVG.Subclass({
     Init: function (parent, transform) {
       this.parent = parent;
       this.drawArea = parent.createSVGElement("g", 
-        transform === undefined? {} : {transform:transform.toString()});
+        transform === undefined? {} : { transform: transform.toString() });
+      var parentOrigin = parent.getOrigin();
+      if (transform === undefined) {
+        this.origin = parentOrigin;
+      } else {
+        this.origin = transform.apply(parentOrigin.x, parentOrigin.y);
+      }
     },
     stack: function () { return this.parent.stack(); },
     remove: function () {
@@ -2353,6 +2419,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     extendBoundingBox: function (boundingBox) {
       this.parent.extendBoundingBox(boundingBox);
+    },
+    getOrigin: function () {
+      return this.origin;
     }
   });
   xypic.Graphics.Augment({}, {
@@ -2428,7 +2497,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           var env = xypic.Env();
           
           // TODO: 図形オブジェクトを構築した後に、それに対して描画を命じる。
-          var context = xypic.DrawingContext(xypic.Shape.empty, env);
+          var context = xypic.DrawingContext(xypic.Shape.none, env);
           xypicData.toShape(context);
           var shape = context.shape;
           shape.draw(svg);
@@ -2802,26 +2871,61 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     // getBoundingBox: function () {}
   }, {});
   
-  xypic.Shape.EmptyShape = xypic.Shape.Subclass({
+  xypic.Shape.NoneShape = xypic.Shape.Subclass({
     draw: function (svg) {
-      // no nothing
     },
     getBoundingBox: function () {
       return undefined;
     },
     toString: function () {
-      return "EmptyShape";
+      return "NoneShape";
     }
   }, {});
   
   xypic.Shape.Augment({}, {
-    empty: xypic.Shape.EmptyShape()
+    none: xypic.Shape.NoneShape()
   });
+  
+  xypic.Shape.HiddenBoxShape = xypic.Shape.Subclass({
+    Init: function (bbox) {
+      this.bbox = bbox;
+    },
+    draw: function (svg) {
+    },
+    getBoundingBox: function () {
+      return this.bbox;
+    },
+    toString: function () {
+      return "HiddenBoxShape[bbox:" + this.bbox.toString() + "]";
+    }
+  }, {});
+  
+  xypic.Shape.TranslateShape = xypic.Shape.Subclass({
+    Init: function (dx, dy, shape) {
+      this.dx = dx;
+      this.dy = dy;
+      this.shape = shape;
+      memoize(this, "getBoundingBox");
+    },
+    draw: function (svg) {
+      // TODO 平行移動をTextObjectにも適用できるようにする。
+      var g = svg.createGroup(svg.transformBuilder().translate(this.dx, this.dy));
+      this.shape.draw(g);
+    },
+    getBoundingBox: function () {
+      var bbox = this.shape.getBoundingBox();
+      return xypic.Frame.Rect(bbox.x - this.dx, bbox.y - this.dy, bbox);
+    },
+    toString: function () {
+      return "TranslateShape[dx:" + this.dx + ", dy:" + this.dy + ", shape:" + this.shape.toString() + "]";
+    }
+  }, {});
   
   xypic.Shape.CompositeShape = xypic.Shape.Subclass({
     Init: function (foregroundShape, backgroundShape) {
       this.foregroundShape = foregroundShape;
       this.backgroundShape = backgroundShape;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       this.foregroundShape.draw(svg);
@@ -2847,6 +2951,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.flip = flip;
       this.ex = ex;
       this.ey = ey;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       svg.createSVGElement("path", {
@@ -2867,6 +2972,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.x = x;
       this.y = y;
       this.r = r;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       svg.createSVGElement("circle", {
@@ -2887,6 +2993,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.c = c;
       this.math = math;
       this.svgForTestLayout = svgForTestLayout;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       this._draw(svg, false);
@@ -2943,8 +3050,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       var c = this.c;
       if (!test) {
-        mathSpan.setAttribute("x", c.x - halfW);
-        mathSpan.setAttribute("y", -c.y + (H - D - spanHeight / HTMLCSS.em) / 2);
+        var origin = svg.getOrigin();
+        mathSpan.setAttribute("x", c.x - halfW - origin.x);
+        mathSpan.setAttribute("y", -c.y + (H - D - spanHeight / HTMLCSS.em) / 2 - origin.y);
         textObjects.push(mathSpan);
       } else {
         svg.stack().removeChild(mathSpan);
@@ -2986,18 +3094,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     Init: function (c, angle, box, drawDelegate) {
       this.c = c;
       this.angle = angle;
-      this.bbox = c.toRect(box).rotate(angle);
       this.drawDelegate = drawDelegate;
+      this.box = box;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       var g = svg.createGroup(svg.transformBuilder().translate(this.c.x, this.c.y).rotateRadian(this.angle));
       this.drawDelegate(this, g);
     },
     getBoundingBox: function () {
-      return this.bbox;
+      return this.c.toRect(this.box).rotate(this.angle);
     },
     toString: function () {
-      return "ArrowheadShape[c:" + this.c.toString() + ", angle:" + this.angle + ", bbox:" + this.bbox.toString() + "]";
+      return "ArrowheadShape[c:" + this.c.toString() + ", angle:" + this.angle + "]";
     }
   },
   {});
@@ -3011,6 +3120,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.t = t;
       this.variant = variant;
       this.dasharray = dasharray;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       var variant = this.variant;
@@ -3107,6 +3217,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.cx = cx;
       this.cy = cy;
       this.variant = variant;
+      memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
       var variant = this.variant;
@@ -3803,7 +3914,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var env = context.env;
       var thickness = HTMLCSS.length2em("0.15em"), vshift;
       var box;
-      var shape = xypic.Shape.empty;
+      var shape = xypic.Shape.none;
       if (objectForConnect !== undefined) {
         var main = objectForConnect.dirMain();
         var variant = objectForConnect.dirVariant();
@@ -3885,7 +3996,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             if (conBBox == undefined) {
               env.angle = 0;
               env.mostRecentLine = xypic.MostRecentLine.none;
-              return xypic.Shape.empty;
+              return xypic.Shape.none;
             }
             
             var cl = conBBox.l;
@@ -3912,13 +4023,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             if (n == 0) {
               env.angle = 0;
               env.mostRecentLine = xypic.MostRecentLine.none;
-              return xypic.Shape.empty;
+              return xypic.Shape.none;
             }
             
             var c = env.c;
             var shiftLen = (len - n * compositeLen) / 2;
             
-            var tmpContext = xypic.DrawingContext(xypic.Shape.empty, env);
+            var tmpContext = xypic.DrawingContext(xypic.Shape.none, env);
             var s, t;
             for (var i = 0; i < n; i++) {
               s = shiftLen + i * compositeLen;
@@ -3939,7 +4050,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             return shape;
         }
         if (vshift === undefined) {
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
         } else {
           shape = xypic.Shape.CurveShape(this, objectForDrop, objectForConnect, this.boundingBox(vshift));
           context.appendShapeToFront(shape);
@@ -3951,7 +4062,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (objectBBox == undefined) {
           env.angle = 0;
           env.mostRecentLine = xypic.MostRecentLine.none;
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
         }
         
         var objectWidth = objectBBox.l+objectBBox.r;
@@ -3965,12 +4076,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (n == 0) {
           env.angle = 0;
           env.mostRecentLine = xypic.MostRecentLine.none;
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
         }
         
         var shiftLen = (len - n*objectLen + objectLen - objectWidth) / 2 + objectBBox.l;
         var c = env.c;
-        var tmpContext = xypic.DrawingContext(xypic.Shape.empty, env);
+        var tmpContext = xypic.DrawingContext(xypic.Shape.none, env);
         for (var i = 0; i < n; i++) {
           var s = shiftLen + i*objectLen;
           var t = this.tOfLength(s);
@@ -6022,7 +6133,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       tmpEnv.angle = 0;
       tmpEnv.mostRecentLine = xypic.MostRecentLine.none;
       tmpEnv.p = tmpEnv.c = xypic.Env.originPosition;
-      var tmpContext = xypic.DrawingContext(xypic.Shape.empty, tmpEnv);
+      var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       
       var box = this.pos.toShape(tmpContext);
       context.appendShapeToFront(tmpContext.shape);
@@ -6192,57 +6303,52 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Object.Augment({
     toDropShape: function (context) {
-      return this.object.toDropShape(context, this.modifiers);
+      var env = context.env;
+      var modifiers = this.modifiers;
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
+      var objectShape = this.object.toDropShape(subcontext);
+      modifiers.foreach(function (m) { objectShape = m.modifyShape(subcontext, objectShape); });
+      context.appendShapeToFront(objectShape);
+      return objectShape;
     },
     toConnectShape: function (context) {
-      return this.object.toConnectShape(context, this.modifiers);
+      return this.object.toConnectShape(context, this);
+//      var env = context.env;
+//      var modifiers = this.modifiers;
+//      var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
+//      var objectShape = this.object.toConnectShape(subcontext, this);
+//      modifiers.foreach(function (m) { objectShape = m.modifyShape(subcontext, objectShape); });
+//      context.appendShapeToFront(objectShape);
+//      return objectShape;
     },
     boundingBox: function (context) {
-      return this.object.boundingBox(context, this.modifiers);
-    }
-  });
-  
-  AST.ObjectBox.Augment({
-    boundingBox: function (context, modifiers) {
       var tmpEnvContext = context.duplicateEnv();
       var tmpEnv = tmpEnvContext.env;
       tmpEnv.angle = 0;
       tmpEnv.p = tmpEnv.c = xypic.Frame.Point(0, 0);
-      tmpEnvContext.shape = xypic.Shape.empty;
-      var dropShape = this.toDropShape(tmpEnvContext, modifiers);
+      tmpEnvContext.shape = xypic.Shape.none;
+      var dropShape = this.toDropShape(tmpEnvContext);
       return dropShape.getBoundingBox();
     }
   });
-  
+ 
   AST.ObjectBox.Text.Augment({
-    toDropShape: function (context, modifiers) {
-      // TODO: impl
-      
-      // modification
-      modifiers.foreach(function (m) { m.preprocess(context); });
-      
+    toDropShape: function (context) {
       var textShape = xypic.Shape.TextShape(context.env.c, this.math, svgForTestLayout);
       context.appendShapeToFront(textShape);
-      var c = textShape.getBoundingBox();
-      
-      // modification
-      // TODO: '!'に対応させる。objectの大きさを元に、描画の位置を調整することになるため、ここでは遅い。
-      //modifiers.foreach(function (m) { c = m.postprocess(c, context); });
-      
-      context.env.c = c;
-      
+      context.env.c = textShape.getBoundingBox();
       return textShape;
     },
-    toConnectShape: function (context, modifiers) {
+    toConnectShape: function (context, object) {
       var env = context.env;
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
       if (s.x !== e.x || s.y !== e.y) {
-        var objectBBox = this.boundingBox(context, modifiers);
+        var objectBBox = object.boundingBox(context);
         if (objectBBox == undefined) {
           env.angle = 0;
           env.mostRecentLine = xypic.MostRecentLine.none;
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
         }
         
         var objectWidth = objectBBox.l + objectBBox.r;
@@ -6258,7 +6364,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (n == 0) {
           env.angle = 0;
           env.mostRecentLine = xypic.MostRecentLine.none;
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
         }
         
         var angle = Math.atan2(dy, dx);
@@ -6268,12 +6374,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var startX = s.x + shiftLen * cos;
         var startY = s.y + shiftLen * sin;
         
-        var tmpContext = xypic.DrawingContext(xypic.Shape.empty, env);
+        var tmpContext = xypic.DrawingContext(xypic.Shape.none, env);
         var c = env.c;
         for (var i = 0; i < n; i++) {
           env.c = xypic.Frame.Point(startX + i * odx, startY + i * ody);
           env.angle = 0;
-          this.toDropShape(tmpContext, modifiers);
+          object.toDropShape(tmpContext);
         }
         env.angle = angle;
         env.c = c;
@@ -6285,34 +6391,28 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       env.angle = 0;
       env.mostRecentLine = xypic.MostRecentLine.none;
-      return xypic.Shape.empty;
+      return xypic.Shape.none;
     }
   });
   
   AST.ObjectBox.Cir.Augment({
-    toDropShape: function (context, modifiers) {
+    toDropShape: function (context) {
       var env = context.env;
       if (env.c === undefined) {
-        return xypic.Shape.empty;
+        return xypic.Shape.none;
       }
-      
-      // modification
-      modifiers.foreach(function (m) { m.preprocess(context); });
       
       var r = this.radius.radius(context);
       var x = env.c.x;
       var y = env.c.y;
       var circleShape = this.cir.toDropShape(context, x, y, r);
-      
-      // modification
-      // TODO: '!'に対応させる。objectの大きさを元に、描画の位置を調整することになるため、ここでは遅い。
-      //modifiers.foreach(function (m) { c = m.postprocess(c, context); });
+      env.c = xypic.Frame.Circle(x, y, r);
       
       return circleShape;
     },
     toConnectShape: function (context) {
       // TODO: 何もしなくてよいかTeXの出力結果を確認する。
-      return xypic.Shape.empty;
+      return xypic.Shape.none;
     }
   });
   
@@ -6435,16 +6535,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   AST.ObjectBox.Dir.Augment({
-    toDropShape: function (context, modifiers) {
+    toDropShape: function (context) {
       var env = context.env;
       if (env.c === undefined) {
-        return xypic.Shape.empty;
+        return xypic.Shape.none;
       }
       
-      modifiers.foreach(function (m) { m.preprocess(context); });
-      
       var t = AST.xypic.thickness;
-      
       var box, delegate;
       switch (this.main) {
         case ">":
@@ -6727,7 +6824,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
         default:
           // TODO: impl compound arrowheads
-          return xypic.Shape.empty;
+          return xypic.Shape.none;
       }
       
       var shape = xypic.Shape.ArrowheadShape(env.c, env.angle, box, delegate);
@@ -6737,13 +6834,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //        x:em2px(c.x-c.l), y:em2px(-c.y-c.u), width:em2px(c.l+c.r), height:em2px(c.u+c.d),
 //        "stroke-width":"0.02em", stroke:"green"
 //      })
-      
-      // TODO: modification
-//      modifiers.foreach(function (m) { c = m.postprocess(c, svg, env); });
 
       return shape;
     },
-    toConnectShape: function (context, modifiers) {
+    toConnectShape: function (context, object) {
       // 多重線の幅、点線・破線の幅の基準
       var env = context.env;
       var t = AST.xypic.thickness;
@@ -6754,7 +6848,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var dy = e.y - s.y;
         var angle = Math.atan2(dy, dx);
         var shift = { x:0, y:0 };
-        var shape = xypic.Shape.empty;
+        var shape = xypic.Shape.none;
         
         switch (this.main) {
           case '':
@@ -6834,11 +6928,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             
           default:
             // connect by arrowheads
-            var arrowBBox = this.boundingBox(context, modifiers);
+            var arrowBBox = object.boundingBox(context);
             if (arrowBBox == undefined) {
               env.angle = 0;
               env.mostRecentLine = xypic.MostRecentLine.none;
-              return xypic.Shape.empty;
+              return xypic.Shape.none;
             }
             
             var arrowLen = arrowBBox.l + arrowBBox.r;
@@ -6851,7 +6945,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             if (n == 0) {
               env.angle = 0;
               env.mostRecentLine = xypic.MostRecentLine.none;
-              return xypic.Shape.empty;
+              return xypic.Shape.none;
             }
             
             var c = env.c;
@@ -6861,11 +6955,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             var startX = s.x + (shiftLen + arrowBBox.l) * cos;
             var startY = s.y + (shiftLen + arrowBBox.l) * sin;
             
-            var tmpContext = xypic.DrawingContext(xypic.Shape.empty, env);
+            var tmpContext = xypic.DrawingContext(xypic.Shape.none, env);
             for (var i = 0; i < n; i++) {
               env.c = xypic.Frame.Point(startX + i * ac, startY + i * as);
               env.angle = angle;
-              this.toDropShape(tmpContext, modifiers);
+              object.toDropShape(tmpContext);
             }
             env.c = c;
             env.angle = angle;
@@ -6883,17 +6977,17 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       } else {
         env.angle = 0;
         env.mostRecentLine = xypic.MostRecentLine.none;
-        return xypic.Shape.empty;
+        return xypic.Shape.none;
       }
     }
   });
   
   AST.ObjectBox.Curve.Augment({
-    toDropShape: function (context, modifiers) {
-      return xypic.Shape.empty;
+    toDropShape: function (context) {
+      return xypic.Shape.none;
       return xypic.Frame.Point(env.c.x, env.c.y);
     },
-    toConnectShape: function (context, modifiers) {
+    toConnectShape: function (context, object) {
       var env = context.env;
       // find object for drop and connect
       var objectForDrop = undefined;
@@ -6921,7 +7015,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       env.c = c;
       env.p = p;
-      var shape = xypic.Shape.empty;
+      var shape = xypic.Shape.none;
       var s = p;
       var e = c;
       switch (controlPoints.length) {
@@ -6929,7 +7023,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           if (s.x === e.x && s.y === e.y) {
             env.mostRecentLine = xypic.MostRecentLine.none;
             env.angle = 0;
-            return xypic.Shape.empty;
+            return xypic.Shape.none;
           }
           if (objectForConnect !== undefined) {
             return objectForConnect.toConnectShape(context, FP.List.empty);
@@ -6947,7 +7041,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           if (shavePCBezier === undefined) {
               env.angle = 0;
               env.mostRecentLine = xypic.MostRecentLine.none;
-              return xypic.Shape.empty;
+              return xypic.Shape.none;
           }
           shape = shavePCBezier.toShape(context, objectForDrop, objectForConnect);
           env.mostRecentLine = xypic.MostRecentLine.QuadBezier(origBezier, shavePBezier, shavePCBezier);
@@ -6965,7 +7059,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           if (cb === undefined) {
             env.mostRecentLine = xypic.MostRecentLine.none;
             env.angle = 0;
-            return xypic.Shape.empty;
+            return xypic.Shape.none;
           }
           
           shape = shavePCBezier.toShape(context, objectForDrop, objectForConnect);
@@ -6983,7 +7077,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           if (n == 0) {
             env.mostRecentLine = xypic.MostRecentLine.none;
             env.angle = 0;
-            return xypic.Shape.empty;
+            return xypic.Shape.none;
           }
           shape = shavePCBeziers.toShape(context, objectForDrop, objectForConnect);
           env.mostRecentLine = xypic.MostRecentLine.CubicBSpline(s, e, origBeziers, shavePBeziers, shavePCBeziers);
@@ -7350,106 +7444,99 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   AST.Modifier.Vector.Augment({
-    preprocess: function (context) {
+    modifyShape: function (context, objectShape) {
       var env = context.env;
       var d = this.vector.xy(context);
       env.c = env.c.move(env.c.x - d.x, env.c.y - d.y);
-    },
-    postprocess: function (c, context) {
-      return c;
+      return xypic.Shape.TranslateShape(d.x, d.y, objectShape);
     }
   });
   
   AST.Modifier.Shape.Augment({
-    preprocess: function (context) {
-      this.shape.preprocess(context);
-    },
-    postprocess: function (c, context) {
-      return this.shape.postprocess(c, context);
+    modifyShape: function (context, objectShape) {
+      return this.shape.modifyShape(context, objectShape);
     }
   });
   
   AST.Modifier.Shape.Point.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      var mc = xypic.Frame.Point(c.x, c.y);
-      env.c = mc;
-      return mc;
+    modifyShape: function (context, objectShape) {
+      var c = context.env.c;
+      context.env.c = xypic.Frame.Point(c.x, c.y);
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.Rect.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      return c;
+    modifyShape: function (context, objectShape) {
+      var c = context.env.c;
+      context.env.c = xypic.Frame.Rect(c.x, c.y, { l:c.l, r:c.r, u:c.u, d:c.d });
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.Circle.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      return xypic.Frame.Circle(c.x, c.y, Math.max(c.l, c.r, c.u, c.d));
+    modifyShape: function (context, objectShape) {
+      var c = context.env.c;
+      context.env.c = xypic.Frame.Circle(c.x, c.y, Math.max(c.l, c.r, c.u, c.d));
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.L.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      // TODO: impl [l]
-      return c;
+    modifyShape: function (context, objectShape) {
+      // TODO impl [l]
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.R.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      // TODO: impl [r]
-      return c;
+    modifyShape: function (context, objectShape) {
+      // TODO impl [r]
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.U.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      // TODO: impl [u]
-      return c;
+    modifyShape: function (context, objectShape) {
+      // TODO impl [u]
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.D.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      // TODO: impl [d]
-      return c;
+    modifyShape: function (context, objectShape) {
+      // TODO impl [d]
+      return objectShape;
     }
   });
   
   AST.Modifier.Shape.C.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      // TODO: impl [c]
-      return c;
+    modifyShape: function (context, objectShape) {
+      // TODO impl [c]
+      return objectShape;
     }
   });
   
   AST.Modifier.Direction.Augment({
-    preprocess: function (context) {
+    modifyShape: function (context, objectShape) {
+      // TODO impl
       var env = context.env;
       env.angle = this.direction.angle(context);
-    },
-    postprocess: function (c, context) {
-      return c;
+      // TODO 再描画が必要。
+      return objectShape;
     }
   });
   
   AST.Modifier.AddOp.Augment({
-    preprocess: function (context) {},
-    postprocess: function (c, context) {
-      return this.op.postprocess(this.size, c, context);
+    modifyShape: function (context, objectShape) {
+      var c = context.env.c;
+      context.env.c = this.op.apply(this.size, c, context);
+      context.appendShapeToFront(xypic.Shape.HiddenBoxShape(context.env.c));
+      return objectShape;
     }
   });
   AST.Modifier.AddOp.Grow.Augment({
-    postprocess: function (size, c, context) {
+    apply: function (size, c, context) {
       var margin = (size.isDefault?
         { x:2 * AST.xypic.objectmargin, y:2 * AST.xypic.objectmargin }:
         size.vector.xy(context));
@@ -7459,7 +7546,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   AST.Modifier.AddOp.Shrink.Augment({
-    postprocess: function (size, c, context) {
+    apply: function (size, c, context) {
       var margin = (size.isDefault?
         { x:2 * AST.xypic.objectmargin, y:2 * AST.xypic.objectmargin }:
         size.vector.xy(context));
@@ -7469,7 +7556,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   AST.Modifier.AddOp.Set.Augment({
-    postprocess: function (size, c, context) {
+    apply: function (size, c, context) {
       var margin = (size.isDefault?
         { x:AST.xypic.objectwidth, y:AST.xypic.objectheight }:
         size.vector.xy(context));
@@ -7479,7 +7566,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   AST.Modifier.AddOp.GrowTo.Augment({
-    postprocess: function (size, c, context) {
+    apply: function (size, c, context) {
       var l = Math.max(c.l + c.r, c.u + c.d);
       var margin = (size.isDefault? { x:l, y:l } : size.vector.xy(context));
       var width = Math.abs(margin.x);
@@ -7488,7 +7575,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   AST.Modifier.AddOp.ShrinkTo.Augment({
-    postprocess: function (size, c, context) {
+    apply: function (size, c, context) {
       var l = Math.min(c.l + c.r, c.u + c.d);
       var margin = (size.isDefault? { x:l, y:l } : size.vector.xy(context));
       var width = Math.abs(margin.x);
