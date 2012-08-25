@@ -4077,7 +4077,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           var t = this.tOfLength(s);
           env.c = this.position(t);
           env.angle = 0;
-          var bbox = object.drop(tmpContext);
+          object.toDropShape(tmpContext);
         }
         env.c = c;
         shape = tmpContext.shape;
