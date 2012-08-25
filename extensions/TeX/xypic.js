@@ -3010,7 +3010,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var p = HTMLCSS.length2em("0.1em");
       var mathSpan = HTMLCSS.Element("span", {
         className:"MathJax", 
-        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute" /* , "border":"1px solid" */ }
+        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute" /*, "border":"0.1px dashed"*/ }
       });
       
       svg.stack().appendChild(mathSpan);
@@ -6556,8 +6556,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       
       var t = AST.xypic.thickness;
-      var shape, box, delegate;
+      var shape;
       switch (this.main) {
+        case "":
+          return xypic.Shape.none;
         case ">":
           switch (this.variant) {
             case "2":
@@ -6566,18 +6568,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //              var ls = l*Math.sin(10*Math.PI/180+Math.atan2(0.165, 0.55));
 //              console.log("l:"+l, ", l cos 10:"+lc+", l sin 10:"+ls)
 //              box = {l:lc, r:0, d:ls, u:ls};
-              box = { l:0.513, r:0, d:0.258, u:0.258 };
-              delegate = function (self, svg) {
-                var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
-                var gd = svg.createGroup(svg.transformBuilder().rotateDegree(10));
-                gu.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0.513, r:0, d:0.258, u:0.258 }, 
+                function (self, svg) {
+                  var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
+                  var gd = svg.createGroup(svg.transformBuilder().rotateDegree(10));
+                  gu.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+                  });
+                  gd.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(-0.25) + ","+em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                  });
                 });
-                gd.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(-0.25) + ","+em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
-                });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "3":
 //              var l = Math.sqrt(0.55*0.55+0.165*0.165);
@@ -6585,47 +6587,51 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //              var ls = l*Math.sin(15*Math.PI/180+Math.atan2(0.165, 0.55));
 //              console.log("l:"+l, ", l cos 15:"+lc+", l sin 15:"+ls)
 //              box = {l:0.57, r:0, d:ls, u:ls};
-              box = { l:0.57, r:0, d:0.302, u:0.302 };
-              delegate = function (self, svg) {
-                var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
-                var gd = svg.createGroup(svg.transformBuilder().rotateDegree(15));
-                gu.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0.57, r:0, d:0.302, u:0.302 }, 
+                function (self, svg) {
+                  var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
+                  var gd = svg.createGroup(svg.transformBuilder().rotateDegree(15));
+                  gu.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+                  });
+                  svg.createSVGElement("line", {
+                    x1:em2px(0), y1:0, x2:em2px(-0.57), y2:0
+                  });
+                  gd.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                  });
                 });
-                svg.createSVGElement("line", {
-                  x1:em2px(0), y1:0, x2:em2px(-0.57), y2:0
-                });
-                gd.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
-                });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             default:
-              box = { l:0.55, r:0, d:(this.variant === "^"? 0 : 0.165), u:(this.variant === "_"? 0 : 0.165) };
               if (this.variant === "^") {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0.55, r:0, d:0, u:0.165 }, 
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+                    });
                   });
-                }
               } else if (this.variant === "_") {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0.55, r:0, d:0.165, u:0 },
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                    });
                   });
-                }
               } else {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0.55, r:0, d:0.165, u:0.165 },
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
+                    });
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
+                    });
                   });
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(-0.25) + "," + em2px(-0.023) + " " + em2px(-0.55) + "," + em2px(-0.165)
-                  });
-                }
               }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
           }
           break;
         case "<":
@@ -6636,18 +6642,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //              var ls = l*Math.sin(10*Math.PI/180+Math.atan2(0.165, 0.55));
 //              console.log("l:"+l, ", l cos 10:"+lc+", l sin 10:"+ls)
 //              box = {l:0, r:lc, d:ls, u:ls};
-              box = { l:0, r:0.513, d:0.258, u:0.258 };
-              delegate = function (self, svg) {
-                var gu = svg.createGroup(svg.transformBuilder().rotateDegree(10)); 
-                var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
-                gu.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0.513, d:0.258, u:0.258 }, 
+                function (self, svg) {
+                  var gu = svg.createGroup(svg.transformBuilder().rotateDegree(10)); 
+                  var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
+                  gu.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                  });
+                  gd.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
+                  });
                 });
-                gd.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
-                });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "3":
 //              var l = Math.sqrt(0.55*0.55+0.165*0.165);
@@ -6655,181 +6661,185 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //              var ls = l*Math.sin(15*Math.PI/180+Math.atan2(0.165, 0.55));
 //              console.log("l:"+l, ", l cos 15:"+lc+", l sin 15:"+ls)
 //              box = {l:0, r:0.57, d:ls, u:ls};
-              box = { l:0, r:0.57, d:0.302, u:0.302 };
-              delegate = function (self, svg) {
-                var gu = svg.createGroup(svg.transformBuilder().rotateDegree(15));
-                var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
-                gu.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0.57, d:0.302, u:0.302 }, 
+                function (self, svg) {
+                  var gu = svg.createGroup(svg.transformBuilder().rotateDegree(15));
+                  var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
+                  gu.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                  });
+                  svg.createSVGElement("line", {
+                    x1:em2px(0), y1:0, x2:em2px(0.57), y2:0
+                  });
+                  gd.createSVGElement("path", {
+                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
+                  });
                 });
-                svg.createSVGElement("line", {
-                  x1:em2px(0), y1:0, x2:em2px(0.57), y2:0
-                });
-                gd.createSVGElement("path", {
-                  d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
-                });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             default:
-              box = { l:0, r:0.55, d:(this.variant === "^"? 0 : 0.165), u:(this.variant === "_"? 0 : 0.165) };
               if (this.variant === "^") {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0, r:0.55, d:0, u:0.165 }, 
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                    });
                   });
-                }
               } else if (this.variant === "_") {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0, r:0.55, d:0.165, u:0 }, 
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
+                    });
                   });
-                }
               } else {
-                delegate = function (self, svg) {
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                shape = xypic.Shape.ArrowheadShape(c, angle, 
+                  { l:0, r:0.55, d:0.165, u:0.165 }, 
+                  function (self, svg) {
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(0.25) + "," + em2px(-0.023) + " " + em2px(0.55) + "," + em2px(-0.165)
+                    });
+                    svg.createSVGElement("path", {
+                      d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
+                    });
                   });
-                  svg.createSVGElement("path", {
-                    d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
-                  });
-                }
               }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
           }
           break;
         case "|":
           var l = em2px(3 * t);
           switch (this.variant) {
             case "^":
-              box = { l:0, r:0, u:3 * t, d:0 };
-              delegate = function (self, svg) {
-                svg.createSVGElement("line", {
-                  x1:0, y1:0, x2:0, y2:-l
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0, u:3 * t, d:0 }, 
+                  function (self, svg) {
+                  svg.createSVGElement("line", {
+                    x1:0, y1:0, x2:0, y2:-l
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "_":
-              box = { l:0, r:0, u:0, d:3 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("line", {
-                  x1:0, y1:0, x2:0, y2:l
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0, u:0, d:3 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("line", {
+                    x1:0, y1:0, x2:0, y2:l
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "2":
-              box = { l:0, r:0, u:2 * t, d:2 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("line", {
-                  x1:0, y1:em2px(2 * t), x2:0, y2:em2px(-2 * t)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0, u:2 * t, d:2 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("line", {
+                    x1:0, y1:em2px(2 * t), x2:0, y2:em2px(-2 * t)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "3":
-              box = { l:0, r:0, u:2.5 * t, d:2.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("line", {
-                  x1:0, y1:em2px(2.5 * t), x2:0, y2:em2px(-2.5 * t)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0, u:2.5 * t, d:2.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("line", {
+                    x1:0, y1:em2px(2.5 * t), x2:0, y2:em2px(-2.5 * t)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             default:
-              box = { l:0, r:0, u:1.5 * t, d:1.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("line", {
-                  x1:0, y1:l / 2, x2:0, y2:-l / 2
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:0, u:1.5 * t, d:1.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("line", {
+                    x1:0, y1:l / 2, x2:0, y2:-l / 2
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
           }
           break;
         case "(":
           var r = em2px(1.5 * t);
           switch (this.variant) {
             case "^":
-              box = { l:1.5 * t, r:0, u:3 * t, d:0 };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,1 0," + (-2 * r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:1.5 * t, r:0, u:3 * t, d:0 }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,1 0," + (-2 * r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "_":
-              box = { l:1.5 * t, r:0, u:0, d:3 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,0 0," + (2 * r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:1.5 * t, r:0, u:0, d:3 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,0 0," + (2 * r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             default:
-              box = { l:0, r:1.5 * t, u:1.5 * t, d:1.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M" + r + "," + (-r) + " A " + r + "," + r + " 0 0,0 " + r + "," + r
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:1.5 * t, u:1.5 * t, d:1.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M" + r + "," + (-r) + " A " + r + "," + r + " 0 0,0 " + r + "," + r
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
           }
           break;
         case ")":
           var r = em2px(1.5 * t);
           switch (this.variant) {
             case "^":
-              box = { l:0, r:1.5 * t, u:3 * t, d:0 };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,0 0," + (-2 * r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:1.5 * t, u:3 * t, d:0 }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,0 0," + (-2 * r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "_":
-              box = { l:0, r:1.5 * t, u:0, d:3 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,1 0," + (2 * r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:1.5 * t, u:0, d:3 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,1 0," + (2 * r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             default:
-              box = { l:1.5 * t, r:0, u:1.5 * t, d:1.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M" + (-r) + "," + (-r) + " A " + r + "," + r + " 0 0,1 " + (-r) + "," + r
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:1.5 * t, r:0, u:1.5 * t, d:1.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M" + (-r) + "," + (-r) + " A " + r + "," + r + " 0 0,1 " + (-r) + "," + r
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
           }
           break;
         case "`":
           var r = em2px(1.5 * t);
           switch (this.variant) {
             case "_":
-              box = { l:1.5 * t, r:0, u:0, d:1.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,0 " + (-r) + "," + (r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:1.5 * t, r:0, u:0, d:1.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,0 " + (-r) + "," + (r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "^":
             default:
-              box = { l:1.5 * t, r:0, u:1.5 * t, d:0 };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,1 " + (-r) + "," + (-r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:1.5 * t, r:0, u:1.5 * t, d:0 }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,1 " + (-r) + "," + (-r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
           }
           break;
@@ -6837,23 +6847,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           var r = em2px(1.5 * t);
           switch (this.variant) {
             case "_":
-              box = { l:0, r:1.5 * t, u:0, d:1.5 * t };
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,1 " + r + "," + (r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:1.5 * t, u:0, d:1.5 * t }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,1 " + r + "," + (r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
             case "^":
             default:
-              box = {l:0, r:1.5*t, u:1.5*t, d:0};
-              delegate = function (self, svg) {
-                svg.createSVGElement("path", {
-                  d:"M0,0 A " + r + "," + r + " 0 0,0 " + r + "," + (-r)
+              shape = xypic.Shape.ArrowheadShape(c, angle, 
+                { l:0, r:1.5 * t, u:1.5 * t, d:0 }, 
+                function (self, svg) {
+                  svg.createSVGElement("path", {
+                    d:"M0,0 A " + r + "," + r + " 0 0,0 " + r + "," + (-r)
+                  });
                 });
-              }
-              shape = xypic.Shape.ArrowheadShape(c, angle, box, delegate);
               break;
           }
           break;
