@@ -3052,12 +3052,26 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       var c = this.c;
       if (!test) {
-        var dy = stack.offsetTop + frame.offsetTop;
         var origin = svg.getOrigin();
         mathSpan.setAttribute("x", c.x - halfW - origin.x);
-        mathSpan.setAttribute("y", -c.y - halfHD - origin.y - dy / HTMLCSS.em);
+        mathSpan.setAttribute("y", -c.y - halfHD - origin.y - stack.offsetTop / HTMLCSS.em + H);
         textObjects.push(mathSpan);
+
 /*        
+        console.log("span.top:" + span.offsetTop + ", " + (span.offsetTop / HTMLCSS.em) + "em");
+        console.log("span.height:" + span.offsetHeight + ", " + (span.offsetHeight / HTMLCSS.em) + "em");
+        console.log("stack.top:" + stack.offsetTop + ", " + (stack.offsetTop / HTMLCSS.em) + "em");
+        console.log("stack.height:" + stack.offsetHeight + ", " + (stack.offsetHeight / HTMLCSS.em) + "em");
+        console.log("frame.top:" + frame.offsetTop + ", " + (frame.offsetTop / HTMLCSS.em) + "em");
+        console.log("frame.height:" + frame.offsetHeight + ", " + (frame.offsetHeight / HTMLCSS.em) + "em");
+        console.log("base.top:" + base.offsetTop + ", " + (base.offsetTop / HTMLCSS.em) + "em");
+        console.log("base.height:" + base.offsetHeight + ", " + (base.offsetHeight / HTMLCSS.em) + "em");
+        console.log("p:" + em2px(p) + ", " + p + "em");
+        console.log("D:" + em2px(D) + ", " + D + "em");
+        console.log("H:" + em2px(H) + ", " + H + "em");
+        console.log("d:" + em2px(base.bbox.d) + ", " + base.bbox.d + "em");
+        console.log("h:" + em2px(base.bbox.h) + ", " + base.bbox.h + "em");
+        
         svg.createSVGElement("rect", {
           x:em2px(c.x - halfW),
           y:-em2px(c.y + halfHD),
