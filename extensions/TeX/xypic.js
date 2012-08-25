@@ -2380,7 +2380,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.dy = dy;
     },
     apply: function (x, y) {
-      return { x:x + this.dx, y:y - this.dy };
+      return { x:x - this.dx, y:y + this.dy };
     },
     toTranslateForm: function () {
       return "translate(" + em2px(this.dx) + "," + em2px(-this.dy) + ") ";
@@ -2887,7 +2887,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     none: xypic.Shape.NoneShape()
   });
   
-  xypic.Shape.HiddenBoxShape = xypic.Shape.Subclass({
+  xypic.Shape.InvisibleBoxShape = xypic.Shape.Subclass({
     Init: function (bbox) {
       this.bbox = bbox;
     },
@@ -2897,7 +2897,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return this.bbox;
     },
     toString: function () {
-      return "HiddenBoxShape[bbox:" + this.bbox.toString() + "]";
+      return "InvisibleBoxShape[bbox:" + this.bbox.toString() + "]";
     }
   });
   
@@ -2909,7 +2909,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
-      // TODO 平行移動をTextObjectにも適用できるようにする。
       var g = svg.createGroup(svg.transformBuilder().translate(this.dx, this.dy));
       this.shape.draw(g);
     },
@@ -2918,7 +2917,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (bbox === undefined) {
         return undefined;
       }
-      return xypic.Frame.Rect(bbox.x - this.dx, bbox.y - this.dy, bbox);
+      return xypic.Frame.Rect(bbox.x + this.dx, bbox.y + this.dy, bbox);
     },
     toString: function () {
       return "TranslateShape[dx:" + this.dx + ", dy:" + this.dy + ", shape:" + this.shape.toString() + "]";
@@ -3909,7 +3908,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toShape: function (context, objectForDrop, objectForConnect) {
       var env = context.env;
       var thickness = HTMLCSS.length2em("0.15em"), vshift;
-      var box;
       var shape = xypic.Shape.none;
       if (objectForConnect !== undefined) {
         var main = objectForConnect.dirMain();
@@ -5524,26 +5522,28 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var start = (shaveP? this.start : this.p);
       var end = (shaveC? this.end : this.c);
       if (start.x === end.x && start.y === end.y) {
-        return {pos:start, angle:0};
+        return { pos:start, angle:0 };
       } else {
         var dx = end.x - start.x;
         var dy = end.y - start.y;
-        var l = Math.sqrt(dx*dx+dy*dy);
+        var l = Math.sqrt(dx * dx + dy * dy);
         var angle = Math.atan2(dy, dx);
         if (factor > 0.5) {
-          return {pos:xypic.Frame.Point(
-                end.x - (1 - factor)*dx + slideEm*dx/l,
-                end.y - (1 - factor)*dy + slideEm*dy/l
-              ),
-              angle:angle
-            };
+          return {
+            pos:xypic.Frame.Point(
+              end.x - (1 - factor) * dx + slideEm * dx / l,
+              end.y - (1 - factor) * dy + slideEm * dy / l
+            ),
+            angle:angle
+          };
         } else {
-          return {pos:xypic.Frame.Point(
-                start.x + factor*dx + slideEm*dx/l,
-                start.y + factor*dy + slideEm*dy/l
-              ),
-              angle:angle
-            };
+          return {
+            pos:xypic.Frame.Point(
+              start.x + factor * dx + slideEm * dx / l,
+              start.y + factor * dy + slideEm * dy / l
+            ),
+            angle:angle
+          };
         }
       }
     },
@@ -6300,12 +6300,24 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Object.Augment({
     toDropShape: function (context) {
       var env = context.env;
+      if (env.c === undefined) {
+        return xypic.Shape.none;
+      }
+      var tmpEnv = env.duplicate();
       var modifiers = this.modifiers;
-      var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       modifiers.foreach(function (m) { m.preprocess(subcontext); });
       var objectShape = this.object.toDropShape(subcontext);
+      var objectBoundingBox = objectShape.getBoundingBox();
+      if (objectBoundingBox === undefined) {
+        return xypic.Shape.none;
+      }
+      tmpEnv = env.duplicate(); // restore angle
+      tmpEnv.c = objectBoundingBox;
+      subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       modifiers.foreach(function (m) { objectShape = m.modifyShape(subcontext, objectShape); });
       context.appendShapeToFront(objectShape);
+      env.c = tmpEnv.c.move(env.c.x, env.c.y);
       return objectShape;
     },
     toConnectShape: function (context) {
@@ -6539,7 +6551,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var env = context.env;
       var c = env.c;
       var angle = env.angle;
-      if (env.c === undefined) {
+      if (c === undefined) {
         return xypic.Shape.none;
       }
       
@@ -7441,9 +7453,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return xy;
     },
     angle: function (context) {
-      var angle = Math.PI / 180 * this.degree;
-      var xy = context.env.absVector(Math.cos(angle), Math.sin(angle));
-      return Math.atan2(xy.y, xy.x);
+      return Math.PI / 180 * this.degree;
     }
   });
   
@@ -7637,10 +7647,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      var env = context.env;
       var d = this.vector.xy(context);
+      console.log("d.x:" + d.x + ", d.y:" + d.y);
+      var env = context.env;
       env.c = env.c.move(env.c.x - d.x, env.c.y - d.y);
-      return xypic.Shape.TranslateShape(d.x, d.y, objectShape);
+      return xypic.Shape.TranslateShape(-d.x, -d.y, objectShape);
     }
   });
   
@@ -7733,6 +7744,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       context.env.angle = this.direction.angle(context);
     },
     modifyShape: function (context, objectShape) {
+      context.env.angle = this.direction.angle(context);
       return objectShape;
     }
   });
@@ -7743,7 +7755,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     modifyShape: function (context, objectShape) {
       var c = context.env.c;
       context.env.c = this.op.apply(this.size, c, context);
-      context.appendShapeToFront(xypic.Shape.HiddenBoxShape(context.env.c));
+      context.appendShapeToFront(xypic.Shape.InvisibleBoxShape(context.env.c));
       return objectShape;
     }
   });
