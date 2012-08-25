@@ -6566,7 +6566,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       
       var t = AST.xypic.thickness;
-      var shape;
+      var shape = xypic.Shape.none;
       switch (this.main) {
         case "":
           return xypic.Shape.none;
@@ -6876,6 +6876,64 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                 });
               break;
           }
+          break;
+        case '*':
+          shape = xypic.Shape.ArrowheadShape(c, 0, 
+            { l:t, r:t, u:t, d:t }, 
+            function (self, svg) {
+              svg.createSVGElement("circle", {
+                cx:0, cy:0, r:em2px(t),
+                fill: "currentColor"
+              });
+            });
+          break;
+        case 'o':
+          shape = xypic.Shape.ArrowheadShape(c, 0, 
+            { l:t, r:t, u:t, d:t }, 
+            function (self, svg) {
+              svg.createSVGElement("circle", {
+                cx:0, cy:0, r:em2px(t)
+              });
+            });
+          break;
+        case '+':
+          var halfLen = AST.xypic.lineElementLength / 2;
+          var halfLenPx = em2px(halfLen);
+          shape = xypic.Shape.ArrowheadShape(c, angle, 
+            { l:halfLen, r:halfLen, u:halfLen, d:halfLen }, 
+            function (self, svg) {
+              svg.createSVGElement("line", {
+                x1:-halfLenPx, y1:0, x2:halfLenPx, y2:0
+              });
+              svg.createSVGElement("line", {
+                x1:0, y1:halfLenPx, x2:0, y2:-halfLenPx
+              });
+            });
+          break;
+        case 'x':
+          var halfLen = AST.xypic.lineElementLength / 2;
+          var halfLenPx = em2px(halfLen);
+          shape = xypic.Shape.ArrowheadShape(c, angle + Math.PI / 4, 
+            { l:halfLen, r:halfLen, u:halfLen, d:halfLen }, 
+            function (self, svg) {
+              svg.createSVGElement("line", {
+                x1:-halfLenPx, y1:0, x2:halfLenPx, y2:0
+              });
+              svg.createSVGElement("line", {
+                x1:0, y1:halfLenPx, x2:0, y2:-halfLenPx
+              });
+            });
+          break;
+        case '/':
+          var halfLen = AST.xypic.lineElementLength / 2;
+          var halfLenPx = em2px(halfLen);
+          shape = xypic.Shape.ArrowheadShape(c, angle - Math.PI / 10, 
+            { l:0, r:0, u:halfLen, d:halfLen }, 
+            function (self, svg) {
+              svg.createSVGElement("line", {
+                x1:0, y1:-halfLenPx, x2:0, y2:halfLenPx
+              });
+            });
           break;
         case '-':
         case '--':
