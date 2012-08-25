@@ -7648,7 +7648,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     modifyShape: function (context, objectShape) {
       var d = this.vector.xy(context);
-      console.log("d.x:" + d.x + ", d.y:" + d.y);
       var env = context.env;
       env.c = env.c.move(env.c.x - d.x, env.c.y - d.y);
       return xypic.Shape.TranslateShape(-d.x, -d.y, objectShape);
