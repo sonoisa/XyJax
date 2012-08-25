@@ -2475,7 +2475,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       var bbox = {h:1, d:0, w:1, lw:0, rw:1};
       var H = bbox.h, D = bbox.d, W = bbox.w;
-      var frame = HTMLCSS.createFrame(stack, H+D, 0, W, t, "none");
+      var frame = HTMLCSS.createFrame(stack, H + D, 0, W, t, "none");
       frame.id = "MathJax-frame-"+this.spanID+HTMLCSS.idPostfix;
       
       var svg;
@@ -2496,7 +2496,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (xypicData) {
           var env = xypic.Env();
           
-          // TODO: 図形オブジェクトを構築した後に、それに対して描画を命じる。
           var context = xypic.DrawingContext(xypic.Shape.none, env);
           xypicData.toShape(context);
           var shape = context.shape;
@@ -2504,16 +2503,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           
           var box = shape.getBoundingBox();
           if (box !== undefined) {
-            svg.setWidth(box.l+box.r+2*p);
-            svg.setHeight(box.u+box.d+2*p);
-            svg.setAttribute("viewBox", [em2px(box.x-box.l-p), -em2px(box.y+box.u+p), em2px(box.l+box.r+2*p), em2px(box.u+box.d+2*p)].join(" "));
+            svg.setWidth(box.l + box.r + 2 * p);
+            svg.setHeight(box.u + box.d + 2 * p);
+            svg.setAttribute("viewBox", [ em2px(box.x - box.l - p), -em2px(box.y + box.u + p), em2px(box.l + box.r + 2 * p), em2px(box.u + box.d + 2 * p) ].join(" "));
             var c = textObjects.length;
             for (var i = 0; i < c; i++) {
               var to = textObjects[i];
               var x = parseFloat(to.getAttribute("x"));
               var y = parseFloat(to.getAttribute("y"));
               to.style.left = (x - (box.x - box.l - p)) + "em";
-              to.style.top = (y + (box.y - box.d - p)) + "em";
+              to.style.top = (y + (box.y - box.d)) + "em";
             }
             
             bbox = {h:(box.u+box.d+p), d:p, w:(box.l+box.r+2*p), lw:0, rw:(box.l+box.r+2*p)}
@@ -3010,7 +3009,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var p = HTMLCSS.length2em("0.1em");
       var mathSpan = HTMLCSS.Element("span", {
         className:"MathJax", 
-        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute" /*, "border":"0.1px dashed"*/ }
+        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute" /*, "border":"0.1px dashed" */ }
       });
       
       svg.stack().appendChild(mathSpan);
@@ -3032,47 +3031,44 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       stack = HTMLCSS.createStack(span);
       base = HTMLCSS.createBox(stack);
       math.HTMLmeasureChild(0, base);
-      var H = base.bbox.h+p, D = base.bbox.d+p, W = base.bbox.w+2*p;
-      var frame = HTMLCSS.createFrame(stack,H+D, 0, W, 0, "none");
-      frame.id = "MathJax-frame-"+math.spanID+HTMLCSS.idPostfix;
+      var H = base.bbox.h + p, D = base.bbox.d + p, W = base.bbox.w + 2 * p;
+      var frame = HTMLCSS.createFrame(stack, H + D, 0, W, 0, "none");
+      frame.id = "MathJax-frame-" + math.spanID + HTMLCSS.idPostfix;
+//      stack.style.border = "solid 0.1px pink";
+//      base.style.border = "solid 0.1px pink";
 //      frame.style.border = "solid 0.1px pink";
       HTMLCSS.addBox(stack, frame);
       stack.insertBefore(frame, base);
-      frame.style.width = em2px(W); frame.style.height = em2px(H+D);
+      frame.style.width = em2px(W);
+      frame.style.height = em2px(H + D);
       HTMLCSS.placeBox(frame, 0, -D, true);
       HTMLCSS.placeBox(base, p, 0);
       math.HTMLhandleSpace(span);
       math.HTMLhandleColor(span);
       
       var spanHeight = span.offsetHeight;
-      var halfHD = (H+D)/2;
-      var halfW = W/2;
+      var halfHD = (H + D) / 2;
+      var halfW = W / 2;
       
       var c = this.c;
       if (!test) {
+        var dy = stack.offsetTop + frame.offsetTop;
         var origin = svg.getOrigin();
         mathSpan.setAttribute("x", c.x - halfW - origin.x);
-        mathSpan.setAttribute("y", -c.y + (H - D - spanHeight / HTMLCSS.em) / 2 - origin.y);
+        mathSpan.setAttribute("y", -c.y - halfHD - origin.y - dy / HTMLCSS.em);
         textObjects.push(mathSpan);
+/*        
+        svg.createSVGElement("rect", {
+          x:em2px(c.x - halfW),
+          y:-em2px(c.y + halfHD),
+          width:em2px(W),
+          height:em2px(H + D),
+          stroke:"green", "stroke-width":0.5
+        });
+*/
       } else {
         svg.stack().removeChild(mathSpan);
       }
-      
-//      svg.createSVGElement("rect",{
-//        x:em2px(env.c.x - W/2),
-//        y:-em2px(env.c.y) - spanHeight/2,
-//        width:em2px(W),
-//        height:spanHeight,
-//        stroke:"orange", "stroke-width":0.5
-//      });
-//      
-//      svg.createSVGElement("rect",{
-//        x:em2px(env.c.x - halfW),
-//        y:-em2px(env.c.y + halfHD),
-//        width:em2px(W),
-//        height:em2px(H+D),
-//        stroke:"green", "stroke-width":0.5
-//      });
       
       return c.toRect({ u:halfHD, d:halfHD, l:halfW, r:halfW });
     },
