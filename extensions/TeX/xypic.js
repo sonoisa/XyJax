@@ -6318,7 +6318,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       modifiers.foreach(function (m) { m.preprocess(subcontext); });
       var objectShape = this.object.toDropShape(subcontext);
-      var objectBoundingBox = objectShape.getBoundingBox();
+      var objectBoundingBox = tmpEnv.c;
       if (objectBoundingBox === undefined) {
         return xypic.Shape.none;
       }
@@ -6564,6 +6564,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (c === undefined) {
         return xypic.Shape.none;
       }
+      env.c = xypic.Frame.Point(c.x, c.y);
       
       var t = AST.xypic.thickness;
       var shape = xypic.Shape.none;
@@ -6590,6 +6591,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                     d:"M0,0 Q" + em2px(-0.25) + ","+em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
                   });
                 });
+              env.c = xypic.Frame.Circle(c.x, c.y, 0.240);
               break;
             case "3":
 //              var l = Math.sqrt(0.55*0.55+0.165*0.165);
@@ -6612,6 +6614,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                     d:"M0,0 Q" + em2px(-0.25) + "," + em2px(0.023) + " " + em2px(-0.55) + "," + em2px(0.165)
                   });
                 });
+              env.c = xypic.Frame.Circle(c.x, c.y, 0.325);
               break;
             default:
               if (this.variant === "^") {
@@ -6664,6 +6667,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                     d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
                   });
                 });
+              env.c = xypic.Frame.Circle(c.x, c.y, 0.240);
               break;
             case "3":
 //              var l = Math.sqrt(0.55*0.55+0.165*0.165);
@@ -6686,6 +6690,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                     d:"M0,0 Q" + em2px(0.25) + "," + em2px(0.023) + " " + em2px(0.55) + "," + em2px(0.165)
                   });
                 });
+              env.c = xypic.Frame.Circle(c.x, c.y, 0.325);
               break;
             default:
               if (this.variant === "^") {
