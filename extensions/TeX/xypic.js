@@ -3433,10 +3433,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           var dc = d*Math.cos(angle+hpi), ds = d*Math.sin(angle+hpi);
           // TODO: rを正しい値にする。
           svg.createSVGElement("circle", {
-            cx:em2px(x+dc), cy:-em2px(y+ds), r:0.25
+            cx:em2px(x+dc), cy:-em2px(y+ds), r:0.12,
+            fill: "currentColor"
           });
           svg.createSVGElement("circle", {
-            cx:em2px(x-dc), cy:-em2px(y-ds), r:0.25
+            cx:em2px(x-dc), cy:-em2px(y-ds), r:0.12,
+            fill: "currentColor"
           });
         }
       }

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MathJax Test Page</title>
+<title>XyJax Test Page</title>
 <!-- Copyright (c) 2012 Design Science, Inc. -->
 <!-- Copyright (c) 2011-2012 Isao Sonobe <sonoisa@gmail.com> -->
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -428,16 +428,16 @@ p+<6pc,-.5pc>*{D}="D",
 
 \[
 \begin{xy}
-  0;<1em,0em>:
-  (8, 5) * {ABC} = "A",
-  (3, 10) * {X \otimes Y}="B",
-  <60mm, 55mm> *[o] {\displaystyle \int_0^\infty e^{-x^2/2} dx}="C",
-  "A";"B" ** \dir{-} ?<>/-1mm/ *\dir{>} ?<>/1mm/ *@{>},
-  "B";"C" ** @{} ?<*@3{<}; ?>*@3{>} **@3{-} ?(0.5)*!/rd 3mm/{\scriptstyle \eta} ?(0.5)*!/^ 3.5mm/{\scriptstyle \phi} ?<>,
-  "C";"A" ** @{-} ?>*\dir{>} ?< *\dir{|},
-  "C";"A", x="X",
-  "A";"B", y="Y",
-  "X";"Y" **@3{~} ?<*!/_ 3mm/{x} ?>*!/_ 3mm/{y}
+0;<1em,0em>:
+(8, 5) * {ABC} = "A",
+(3, 10) * {X \otimes Y}="B",
+<60mm, 55mm> *[o] {\displaystyle \int_0^\infty e^{-x^2/2} dx}="C",
+"A";"B" ** \dir{-} ?<>/-1mm/ *\dir{>} ?<>/1mm/ *@{>},
+"B";"C" ** @{} ?<*@3{<}; ?>*@3{>} **@3{-} ?(0.5)*!/rd 3mm/{\scriptstyle \eta} ?(0.5)*!/^ 3.5mm/{\scriptstyle \phi} ?<>,
+"C";"A" ** @{-} ?>*\dir{>} ?< *\dir{|},
+"C";"A", x="X",
+"A";"B", y="Y",
+"X";"Y" **@3{~} ?<*!/_ 3mm/{x} ?>*!/_ 3mm/{y}
 \end{xy}
 \]
 
@@ -473,7 +473,7 @@ p+<6pc,-.5pc>*{D}="D",
 \[
 \begin{xy}
 <0cm,2cm>*{A}="A";<6cm,0cm>*{B}="B"
-**\crv{<10cm,3cm>&<-4cm,4cm>}
+**\crv{~**@3{.} <10cm,3cm>&<-4cm,4cm>}
 \end{xy}
 \]
 
