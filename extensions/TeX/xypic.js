@@ -7834,13 +7834,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     toConnectShape: function (context) {
       return this.object.toConnectShape(context, this);
-//      var env = context.env;
-//      var modifiers = this.modifiers;
-//      var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
-//      var objectShape = this.object.toConnectShape(subcontext, this);
-//      modifiers.foreach(function (m) { objectShape = m.modifyShape(subcontext, objectShape); });
-//      context.appendShapeToFront(objectShape);
-//      return objectShape;
     },
     boundingBox: function (context) {
       var tmpEnvContext = context.duplicateEnv();
@@ -7931,7 +7924,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       return circleShape;
     },
-    toConnectShape: function (context) {
+    toConnectShape: function (context, object) {
       // TODO: 何もしなくてよいかTeXの出力結果を確認する。
       return xypic.Shape.none;
     }
@@ -8058,7 +8051,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  
   AST.ObjectBox.Frame.Augment({
     toDropShape: function (context) {
       var env = context.env;
@@ -8177,9 +8169,22 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       return shape;
     },
-    toConnectShape: function (context) {
-      // TODO: 何もしなくてよいかTeXの出力結果を確認する。
-      return xypic.Shape.none;
+    toConnectShape: function (context, object) {
+      var env = context.env;
+      var c = env.c;
+      var p = env.p;
+      if (c === undefined || p === undefined) {
+        xypic.Shape.none;
+      }
+      
+      var tmpEnv = env.duplicate();
+      tmpEnv.c = c.combineRect(p);
+      
+      var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
+      var shape = object.toDropShape(tmpContext);
+      context.appendShapeToFront(shape);
+      
+      return shape;
     }
   });
   AST.ObjectBox.Frame.Radius.Vector.Augment({
