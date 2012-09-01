@@ -1598,7 +1598,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //          | '\cir' <cir_radius> '{' <cir> '}'
     //          | '\frm' <frame_radius> '{' <frame_main> '}'
     //          | <curve>
-    // <frame_main> ::= '--' | '==' | 'o-' | 'oo' | 'ee' | '-,' | '.o' | '-o' | '.e' | '-e' | '-' | '=' | '.' | ',' | 'o' | 'e' | <empty>
+    // <frame_main> ::= ( '-' | '=' | '.' | ',' | 'o' | 'e' )*
+    //          | ( '_' | '^' )? ( '\{' | '\}' | '(' | ')' )
     objectbox: memo(function () {
       return or(
         p.mathText,
@@ -1607,7 +1608,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         lit("\\cir").andr(p.cirRadius).andl(flit("{")).and(p.cir).andl(flit("}")).to(function (rc) {
           return AST.ObjectBox.Cir(rc.head, rc.tail);
         }),
-        lit("\\frm").andr(p.frameRadius).andl(flit("{")).and(fun(regex(/^(--|==|o-|oo|ee|-,|\.o|-o|\.e|-e|-|=|\.|,|o|e)?/))).andl(flit("}")).to(function (rm) {
+        lit("\\frm").andr(p.frameRadius).andl(flit("{")).and(fun(
+            regex(/^(((_|\^)?(\\\{|\\\}|\(|\)))|[\-=oe,\.]*)/)
+          )).andl(flit("}")).to(function (rm) {
           return AST.ObjectBox.Frame(rm.head, rm.tail);
         }),
         p.curve
@@ -1629,15 +1632,23 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return AST.ObjectBox.Text(mml.root);
     },
     
-    // <text> ::= /[^{}]*/ ( '{' <text> '}' /[^{}]*/ )*
+    // <text> ::= /[^{}\\]*/ (( '\{' | '\}' | '\' | '{' <text> '}' ) /[^{}\\]*/ )*
     text: memo(function () {
-      return regex(/^[^{}]*/).and(function () {
-        return (elem("{").andr(p.text).andl(felem("}")).and(fun(regex(/^[^{}]*/)))).rep().to(function (xs) {
-          var res = "";
-          xs.foreach(function (x) {
-            res += "{" + x.head + "}" + x.tail;
-          });
-          return res;
+      return regex(/^[^{}\\]*/).and(function () {
+        return (
+          or(
+            regex(/^(\\\{|\\\}|\\)/).to(function (x) {
+              return x;
+            }),
+            elem("{").andr(p.text).andl(felem("}")).to(function (x) {
+              return "{" + x + "}";
+            })
+          ).and(fun(regex(/^[^{}\\]*/)))).rep().to(function (xs) {
+            var res = "";
+            xs.foreach(function (x) {
+              res += x.head + x.tail;
+            });
+            return res;
         })
       }).to(function (x) {
         return x.head + x.tail
@@ -3163,6 +3174,172 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  xypic.Shape.LeftBrace = xypic.Shape.Subclass({
+    Init: function (x, y, up, down, degree) {
+      this.x = x;
+      this.y = y;
+      this.up = up;
+      this.down = down;
+      this.degree = degree;
+      memoize(this, "getBoundingBox");
+    },
+    draw: function (svg) {
+      var down = Math.max(0.759375 + 0.660375, this.down) - 0.660375;
+      var up = - Math.max(0.759375 + 0.660375, this.up) + 0.660375;
+      
+      var d;
+      d = "M" + em2px(-0.0675) + " " + em2px(down) + 
+        "T" + em2px(-0.068625) + " " + em2px(0.07875 + down) + 
+        "Q" + em2px(-0.068625) + " " + em2px(0.190125 + down) + 
+        " " + em2px(-0.0585) + " " + em2px(0.250875 + down) + 
+        "T" + em2px(-0.01125) + " " + em2px(0.387 + down) + 
+        "Q" + em2px(0.07425) + " " + em2px(0.55575 + down) + 
+        " " + em2px(0.2475) + " " + em2px(0.6525 + down) + 
+        "L" + em2px(0.262125) + " " + em2px(0.660375 + down) + 
+        "L" + em2px(0.3015) + " " + em2px(0.660375 + down) + 
+        "L" + em2px(0.30825) + " " + em2px(0.653625 + down) + 
+        "V" + em2px(0.622125 + down) + 
+        "Q" + em2px(0.30825) + " " + em2px(0.60975 + down) + 
+        " " + em2px(0.2925) + " " + em2px(0.60075 + down) + 
+        "Q" + em2px(0.205875) + " " + em2px(0.541125 + down) + 
+        " " + em2px(0.149625) + " " + em2px(0.44775 + down) + 
+        "T" + em2px(0.07425) + " " + em2px(0.239625 + down) + 
+        "Q" + em2px(0.07425) + " " + em2px(0.2385 + down) + 
+        " " + em2px(0.073125) + " " + em2px(0.235125 + down) + 
+        "Q" + em2px(0.068625) + " " + em2px(0.203625 + down) + 
+        " " + em2px(0.0675) + " " + em2px(0.041625 + down) + 
+        "L" + em2px(0.0675) + " " + em2px(0.75825) + 
+        "Q" + em2px(0.0675) + " " + em2px(0.496125) + 
+        " " + em2px(0.066375) + " " + em2px(0.486) + 
+        "Q" + em2px(0.05625) + " " + em2px(0.336375) + 
+        " " + em2px(-0.021375) + " " + em2px(0.212625) + 
+        "T" + em2px(-0.226125) + " " + em2px(0.010125) + 
+        "L" + em2px(-0.241875) + " 0" + 
+        "L" + em2px(-0.226125) + " " + em2px(-0.010125) + 
+        "Q" + em2px(-0.106875) + " " + em2px(-0.084375) + 
+        " " + em2px(-0.025875) + " " + em2px(-0.207) + 
+        "T" + em2px(0.066375) + " " + em2px(-0.486) + 
+        "Q" + em2px(0.0675) + " " + em2px(-0.496125) + 
+        " " + em2px(0.0675) + " " + em2px(-0.75825) + 
+        "L" + em2px(0.0675) + " " + em2px(-0.041625 + up) + 
+        "Q" + em2px(0.068625) + " " + em2px(-0.203625 + up) + 
+        " " + em2px(0.073125) + " " + em2px(-0.235125 + up) + 
+        "Q" + em2px(0.07425) + " " + em2px(-0.2385 + up) + 
+        " " + em2px(0.07425) + " " + em2px(-0.239625 + up) + 
+        "Q" + em2px(0.093375) + " " + em2px(-0.354375 + up) + 
+        " " + em2px(0.149625) + " " + em2px(-0.44775 + up) + 
+        "T" + em2px(0.2925) + " " + em2px(-0.60075 + up) + 
+        "Q" + em2px(0.30825) + " " + em2px(-0.60975 + up) + 
+        " " + em2px(0.30825) + " " + em2px(-0.622125 + up) + 
+        "L" + em2px(0.30825) + " " + em2px(-0.653625 + up) + 
+        "L" + em2px(0.3015) + " " + em2px(-0.660375 + up) + 
+        "L" + em2px(0.262125) + " " + em2px(-0.660375 + up) + 
+        "L" + em2px(0.2475) + " " + em2px(-0.6525 + up) + 
+        "Q" + em2px(0.07425) + " " + em2px(-0.55575 + up) + 
+        " " + em2px(-0.01125) + " " + em2px(-0.387 + up) + 
+        "Q" + em2px(-0.048375) + " " + em2px(-0.311625 + up) + 
+        " " + em2px(-0.0585) + " " + em2px(-0.250875 + up) + 
+        "T" + em2px(-0.068625) + " " + em2px(-0.07875 + up) + 
+        "Q" + em2px(-0.0675) + " " + em2px(up) + 
+        " " + em2px(-0.0675) + " " + em2px(up) + 
+        "L" + em2px(-0.0675) + " " + em2px(-0.759375) + 
+        "V" + em2px(-0.5985) + 
+        "Q" + em2px(-0.0675) + " " + em2px(-0.47925) + 
+        " " + em2px(-0.075375) + " " + em2px(-0.41175) + 
+        "T" + em2px(-0.11475) + " " + em2px(-0.27) + 
+        "Q" + em2px(-0.133875) + " " + em2px(-0.2205) + 
+        " " + em2px(-0.160875) + " " + em2px(-0.17775) + 
+        "T" + em2px(-0.212625) + " " + em2px(-0.106875) + 
+        "T" + em2px(-0.25875) + " " + em2px(-0.06075) + 
+        "T" + em2px(-0.293625) + " " + em2px(-0.0315) + 
+        "T" + em2px(-0.307125) + " " + em2px(-0.02025) + 
+        "Q" + em2px(-0.30825) + " " + em2px(-0.019125) + 
+        " " + em2px(-0.30825) + " 0" + 
+        "T" + em2px(-0.307125) + " " + em2px(0.02025) + 
+        "Q" + em2px(-0.307125) + " " + em2px(0.021375) + 
+        " " + em2px(-0.284625) + " " + em2px(0.03825) + 
+        "T" + em2px(-0.2295) + " " + em2px(0.091125) + 
+        "T" + em2px(-0.162) + " " + em2px(0.176625) + 
+        "T" + em2px(-0.10125) + " " + em2px(0.30825) + 
+        "T" + em2px(-0.068625) + " " + em2px(0.482625) + 
+        "Q" + em2px(-0.0675) + " " + em2px(0.496125) + 
+        " " + em2px(-0.0675) + " " + em2px(0.759375) + 
+        "Z";
+      svg.createSVGElement("path", { d:d, fill:"currentColor", "stroke-width":"0pt", transform:"translate(" + em2px(this.x) + "," + em2px(-this.y) +") rotate(" + (-this.degree) + ")" });
+    },
+    getBoundingBox: function () {
+      return xypic.Frame.Rect(this.x, this.y, { l:0.308, r:0.308, u:Math.max(0.759375 + 0.660375, this.up), d:Math.max(0.759375 + 0.660375, this.down) }).rotate(this.degree * Math.PI / 180);
+    },
+    toString: function () {
+      return "LeftBrace[x:" + this.x + ", y:" + this.y + ", up:" + this.up + ", down:" + this.down + "]";
+    }
+  });
+  
+  xypic.Shape.LeftParenthesis = xypic.Shape.Subclass({
+    Init: function (x, y, height, degree) {
+      this.x = x;
+      this.y = y;
+      this.height = height;
+      this.degree = degree;
+      memoize(this, "getBoundingBox");
+    },
+    draw: function (svg) {
+      var down = Math.max(0.660375, this.height / 2) - 0.660375;
+      var up = -down;
+      
+      var d;
+      d = "M" + em2px(-0.0675) + " " + em2px(down) + 
+        "T" + em2px(-0.068625) + " " + em2px(0.07875 + down) + 
+        "Q" + em2px(-0.068625) + " " + em2px(0.190125 + down) + 
+        " " + em2px(-0.0585) + " " + em2px(0.250875 + down) + 
+        "T" + em2px(-0.01125) + " " + em2px(0.387 + down) + 
+        "Q" + em2px(0.07425) + " " + em2px(0.55575 + down) + 
+        " " + em2px(0.2475) + " " + em2px(0.6525 + down) + 
+        "L" + em2px(0.262125) + " " + em2px(0.660375 + down) + 
+        "L" + em2px(0.3015) + " " + em2px(0.660375 + down) + 
+        "L" + em2px(0.30825) + " " + em2px(0.653625 + down) + 
+        "V" + em2px(0.622125 + down) + 
+        "Q" + em2px(0.30825) + " " + em2px(0.60975 + down) + 
+        " " + em2px(0.2925) + " " + em2px(0.60075 + down) + 
+        "Q" + em2px(0.205875) + " " + em2px(0.541125 + down) + 
+        " " + em2px(0.149625) + " " + em2px(0.44775 + down) + 
+        "T" + em2px(0.07425) + " " + em2px(0.239625 + down) + 
+        "Q" + em2px(0.07425) + " " + em2px(0.2385 + down) + 
+        " " + em2px(0.073125) + " " + em2px(0.235125 + down) + 
+        "Q" + em2px(0.068625) + " " + em2px(0.203625 + down) + 
+        " " + em2px(0.0675) + " " + em2px(0.041625 + down) + 
+        "L" + em2px(0.0675) + " " + em2px(-0.041625 + up) + 
+        "Q" + em2px(0.068625) + " " + em2px(-0.203625 + up) + 
+        " " + em2px(0.073125) + " " + em2px(-0.235125 + up) + 
+        "Q" + em2px(0.07425) + " " + em2px(-0.2385 + up) + 
+        " " + em2px(0.07425) + " " + em2px(-0.239625 + up) + 
+        "Q" + em2px(0.093375) + " " + em2px(-0.354375 + up) + 
+        " " + em2px(0.149625) + " " + em2px(-0.44775 + up) + 
+        "T" + em2px(0.2925) + " " + em2px(-0.60075 + up) + 
+        "Q" + em2px(0.30825) + " " + em2px(-0.60975 + up) + 
+        " " + em2px(0.30825) + " " + em2px(-0.622125 + up) + 
+        "L" + em2px(0.30825) + " " + em2px(-0.653625 + up) + 
+        "L" + em2px(0.3015) + " " + em2px(-0.660375 + up) + 
+        "L" + em2px(0.262125) + " " + em2px(-0.660375 + up) + 
+        "L" + em2px(0.2475) + " " + em2px(-0.6525 + up) + 
+        "Q" + em2px(0.07425) + " " + em2px(-0.55575 + up) + 
+        " " + em2px(-0.01125) + " " + em2px(-0.387 + up) + 
+        "Q" + em2px(-0.048375) + " " + em2px(-0.311625 + up) + 
+        " " + em2px(-0.0585) + " " + em2px(-0.250875 + up) + 
+        "T" + em2px(-0.068625) + " " + em2px(-0.07875 + up) + 
+        "Q" + em2px(-0.0675) + " " + em2px(up) + 
+        " " + em2px(-0.0675) + " " + em2px(up) + 
+        "Z";
+      svg.createSVGElement("path", { d:d, fill:"currentColor", "stroke-width":"0pt", transform:"translate(" + em2px(this.x) + "," + em2px(-this.y) +") rotate(" + (-this.degree) + ")" });
+    },
+    getBoundingBox: function () {
+      return xypic.Frame.Rect(this.x, this.y, { l:0.0675, r:0.308, u:Math.max(0.660375, this.height / 2), d:Math.max(0.660375, this.height / 2) }).rotate(this.degree * Math.PI / 180);
+    },
+    toString: function () {
+      return "LeftBrace[x:" + this.x + ", y:" + this.y + ", up:" + this.up + ", down:" + this.down + "]";
+    }
+  });
+
   xypic.Shape.TextShape = xypic.Shape.Subclass({
     Init: function (c, math, svgForTestLayout) {
       this.c = c;
@@ -8161,6 +8338,42 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, xy.x, xy.y, false, false, undefined, undefined);
           break;
           
+        case '\\{':
+          shape = xypic.Shape.LeftBrace(x - left, y, up, down, 0);
+          break;
+          
+        case '\\}':
+          shape = xypic.Shape.LeftBrace(x + right, y, down, up, 180);
+          break;
+          
+        case '^\\}':
+        case '^\\{':
+          shape = xypic.Shape.LeftBrace(x, y + up, right, left, 270);
+          break;
+          
+        case '_\\{':
+        case '_\\}':
+          shape = xypic.Shape.LeftBrace(x, y - down, left, right, 90);
+          break;
+          
+        case '(':
+          shape = xypic.Shape.LeftParenthesis(x - left, y + (up - down) / 2, up + down, 0);
+          break;
+          
+        case ')':
+          shape = xypic.Shape.LeftParenthesis(x + right, y + (up - down) / 2, up + down, 180);
+          break;
+          
+        case '^(':
+        case '^)':
+          shape = xypic.Shape.LeftParenthesis(x + (right - left) / 2, y + up, left + right, 270);
+          break;
+          
+        case '_(':
+        case '_)':
+          shape = xypic.Shape.LeftParenthesis(x + (right - left) / 2, y - down, left + right, 90);
+          break;
+          
         default:
           return xypic.Shape.none;
       }
@@ -8178,7 +8391,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       
       var tmpEnv = env.duplicate();
-      tmpEnv.c = c.combineRect(p);
+      tmpEnv.c = p.combineRect(c);
       
       var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       var shape = object.toDropShape(tmpContext);
