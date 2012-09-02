@@ -34,6 +34,20 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 
 \[
 \begin{xy}
+(0,0) *+++[o]{ABC}="0" *\frm{.e};
+"0"+/ur5em/ *++{UR} **@{-},
+"0"+/r5em/ *++{R} **@{-},
+"0"+/dr5em/ *++{DR} **@{-},
+"0"+/d5em/ *++{D} **@{-},
+"0"+/dl5em/ *++{DL} **@{-},
+"0"+/l5em/ *++{L} **@{-},
+"0"+/ul5em/ *++{UL} **@{-},
+"0"+/u5em/ *++{U} **@{-},
+\end{xy}
+\]
+
+\[
+\begin{xy}
 (0,0)  *++={A} *\frm{o};
 (10,7) *++={B} *\frm{o} **\frm{.}
 \end{xy}
@@ -52,15 +66,14 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 (0,0)*+++{\text{\frm{_\}}}} *\frm{_\}} *\frm{.}="0"
 +/d3em/*+++{\text{\frm{_)}}} *\frm{_)} *\frm{.},
 
-"0"+/r10em/*+++{\text{\frm{^\}}}} *\frm{^\}} *\frm{.},
+"0"+/r8em/*+++{\text{\frm{^\}}}} *\frm{^\}} *\frm{.},
 +/d3em/*+++{\text{\frm{^)}}} *\frm{^)} *\frm{.},
 
-"0"+/r20em/*+++{\text{\frm{\{}}} *\frm{\{} *\frm{.},
+"0"+/r16em/*+++{\text{\frm{\{}}} *\frm{\{} *\frm{.},
 +/d3em/*+++{\text{\frm{(}}} *\frm{(} *\frm{.},
 
-"0"+/r30em/*+++{\text{\frm{\}}}} *\frm{\}} *\frm{.},
+"0"+/r24em/*+++{\text{\frm{\}}}} *\frm{\}} *\frm{.},
 +/d3em/*+++{\text{\frm{)}}} *\frm{)} *\frm{.},
-
 \end{xy}
 \]
 
@@ -95,7 +108,6 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 +/d3em/*++{\text{\frm{-o}}} *\frm{-o} *\frm{.},
 +/d3em/*++{\text{\frm{.e}}} *\frm{.e} *\frm{.},
 +/d3em/*++{\text{\frm{-e}}} *\frm{-e} *\frm{.},
-
 \end{xy}
 \]
 
@@ -516,7 +528,7 @@ p+<6pc,-.5pc>*{D}="D",
 0;<1em,0em>:
 (8, 5) * {ABC} = "A",
 (3, 10) * {X \otimes Y}="B",
-<60mm, 55mm> *[o] {\displaystyle \int_0^\infty e^{-x^2/2} dx}="C",
+<60mm, 55mm> *[o] {\displaystyle \int_0^\infty e^{-x^2/2} dx}*\frm{.e}="C",
 "A";"B" ** \dir{-} ?<>/-1mm/ *\dir{>} ?<>/1mm/ *@{>},
 "B";"C" ** @{} ?<*@3{<}; ?>*@3{>} **@3{-} ?(0.5)*!/rd 3mm/{\scriptstyle \eta} ?(0.5)*!/^ 3.5mm/{\scriptstyle \phi} ?<>,
 "C";"A" ** @{-} ?>*\dir{>} ?< *\dir{|},
@@ -547,7 +559,7 @@ p+<6pc,-.5pc>*{D}="D",
 
 \[
 \begin{xy}
-<0cm,2cm>*+[o]{A}*\cir{}="A";<6cm,0cm>*+[o]{B}="B",
+<0cm,2cm>*+[o]{ABC}*\frm{e}="A";<6cm,0cm>*+{DEF}="B"*\frm{-},
 "A";"B" **\crv{~**@{-}} ?>/-7mm/*@{|} ?<>*@{|} ?>*@{>},
 "A";"B" **\crv{~**@{-} <3cm,3cm>} ?>/-7mm/*@{|} ?<>*@{|} ?>*@{>},
 "A";"B" **\crv{~**@{-} <2cm,4cm>&<4cm,4cm>} ?>/-7mm/*@{|} ?<>*@{|} ?>*@{>},

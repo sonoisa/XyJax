@@ -2843,68 +2843,155 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  // TODO: frame extension対応のため、楕円を表現できるようにする。
-  xypic.Frame.Circle = xypic.Frame.Subclass({
-    Init: function (x, y, r) {
+  xypic.Frame.Ellipse = xypic.Frame.Subclass({
+    Init: function (x, y, l, r, u, d) {
       this.x = x;
       this.y = y;
-      this.l = r;
+      this.l = l;
       this.r = r;
-      this.u = r;
-      this.d = r;
+      this.u = u;
+      this.d = d;
     },
-    isPoint: function () { return this.r === 0; },
+    isPoint: function () { return this.r === 0 && this.l ===0 || this.u === 0 && this.d ===0; },
     isRect: function () { return false; },
     isCircle: function () { return !this.isPoint(); },
+    isPerfectCircle: function () {
+      return this.l === this.r && this.l === this.u && this.l === this.d;
+    },
     edgePoint: function (x, y) {
       if (this.isPoint()) {
         return this;
       }
-      var dx = x - this.x;
-      var dy = y - this.y;
-      var angle;
-      if (Math.abs(dx) < AST.xypic.machinePrecision && Math.abs(dy) < AST.xypic.machinePrecision) {
-        angle = -Math.PI/2;
+      if (this.isPerfectCircle()) {
+        var dx = x - this.x;
+        var dy = y - this.y;
+        var angle;
+        if (Math.abs(dx) < AST.xypic.machinePrecision && Math.abs(dy) < AST.xypic.machinePrecision) {
+          angle = -Math.PI/2;
+        } else {
+          angle = Math.atan2(dy, dx);
+        }
+        return xypic.Frame.Point(this.x + this.r * Math.cos(angle), this.y + this.r * Math.sin(angle));
       } else {
-        angle = Math.atan2(dy, dx);
+        // ellipse
+        var pi = Math.PI;
+        var l = this.l;
+        var r = this.r;
+        var u = this.u;
+        var d = this.d;
+        var cx = this.x + (r - l) / 2;
+        var cy = this.y + (u - d) / 2;
+        var rx = (l + r) / 2;
+        var ry = (u + d) / 2;
+        
+        var delta = pi / 180; // overlapping
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
+        
+        var line = xypic.CurveSegment.Line(xypic.Frame.Point(this.x, this.y), xypic.Frame.Point(x, y), 0, 1);
+        
+        var intersec = [];
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, line));
+        
+        if (intersec.length === 0) {
+          return xypic.Frame.Point(this.x, this.y - this.d);
+        } else {
+          t = (intersec[0][1].min + intersec[0][1].max)/2;
+          for (var i = 1; i < intersec.length; i++) { 
+            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
+            if (t > ttmp) { t = ttmp; }
+          }
+          var xy = line.position(t);
+          return xypic.Frame.Point(xy.x, xy.y);
+        }
       }
-      return xypic.Frame.Point(this.x+this.r*Math.cos(angle), this.y+this.r*Math.sin(angle));
     },
     proportionalEdgePoint: function (x, y) {
       if (this.isPoint()) {
         return this;
       }
-      var dx = x - this.x;
-      var dy = y - this.y;
-      if (Math.abs(dx) < AST.xypic.machinePrecision && Math.abs(dy) < AST.xypic.machinePrecision) {
-        angle = -Math.PI/2;
+      if (this.isPerfectCircle()) {
+        var dx = x - this.x;
+        var dy = y - this.y;
+        var angle;
+        if (Math.abs(dx) < AST.xypic.machinePrecision && Math.abs(dy) < AST.xypic.machinePrecision) {
+          angle = -Math.PI/2;
+        } else {
+          angle = Math.atan2(dy, dx);
+        }
+        return xypic.Frame.Point(this.x - this.r * Math.cos(angle), this.y - this.r * Math.sin(angle));
       } else {
-        angle = Math.atan2(dy, dx);
+        // ellipse
+        var pi = Math.PI;
+        var l = this.l;
+        var r = this.r;
+        var u = this.u;
+        var d = this.d;
+        var cx = this.x + (r - l) / 2;
+        var cy = this.y + (u - d) / 2;
+        var rx = (l + r) / 2;
+        var ry = (u + d) / 2;
+        
+        var delta = pi / 180; // overlapping
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
+        
+        var line = xypic.CurveSegment.Line(xypic.Frame.Point(this.x, this.y), xypic.Frame.Point(x, y), -1, 0);
+        
+        var intersec = [];
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, line));
+        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, line));
+        
+        if (intersec.length === 0) {
+          return xypic.Frame.Point(this.x, this.y - this.d);
+        } else {
+          t = (intersec[0][1].min + intersec[0][1].max)/2;
+          for (var i = 1; i < intersec.length; i++) { 
+            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
+            if (t > ttmp) { t = ttmp; }
+          }
+          var xy = line.position(t);
+          return xypic.Frame.Point(xy.x, xy.y);
+        }
       }
-      return xypic.Frame.Point(this.x-this.r*Math.cos(angle), this.y-this.r*Math.sin(angle));
     },
     grow: function (xMargin, yMargin) {
-      return xypic.Frame.Circle(this.x, this.y, Math.max(0, this.r+xMargin));
+      return xypic.Frame.Ellipse(this.x, this.y, Math.max(0, this.l + xMargin), Math.max(0, this.r + xMargin), Math.max(0, this.u + yMargin), Math.max(0, this.d + yMargin));
     },
     toSize: function (width, height) {
-      return xypic.Frame.Circle(this.x, this.y, width/2);
+      return xypic.Frame.Ellipse(this.x, this.y, width / 2, width / 2, height / 2, height / 2);
     },
     growTo: function (width, height) {
-      var r = Math.max(this.r, width/2);
-      return xypic.Frame.Circle(this.x, this.y, r);
+      var l = Math.max(this.l, width / 2);
+      var r = Math.max(this.r, width / 2);
+      var u = Math.max(this.u, height / 2);
+      var d = Math.max(this.d, height / 2);
+      return xypic.Frame.Ellipse(this.x, this.y, l, r, u, d);
     },
     shrinkTo: function (width, height) {
-      var r = Math.min(this.r, width/2);
-      return xypic.Frame.Circle(this.x, this.y, r);
+      var l = Math.min(this.l, width / 2);
+      var r = Math.min(this.r, width / 2);
+      var u = Math.min(this.u, height / 2);
+      var d = Math.min(this.d, height / 2);
+      return xypic.Frame.Ellipse(this.x, this.y, l, r, u, d);
     },
     move: function (x, y) {
-      return xypic.Frame.Circle(x, y, this.r);
+      return xypic.Frame.Ellipse(x, y, this.l, this.r, this.u, this.d);
     },
     rotate: function (angle) {
       return this;
     },
     toString: function () {
-      return "{x:"+this.x+", y:"+this.y+", r:"+this.r+"}";
+      return "{x:" + this.x + ", y:" + this.y + ", l:" + this.l + ", r:" + this.r + ", u:" + this.u + ", d:" + this.d + "}";
     }
   });
   
@@ -3013,7 +3100,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
     },
     getBoundingBox: function () {
-      return xypic.Frame.Circle(this.x, this.y, this.r);
+      return xypic.Frame.Ellipse(this.x, this.y, this.r, this.r, this.r, this.r);
     },
     toString: function () {
       return "CircleSegmentShape[x:" + this.x + ", y:" + this.y + ", sx:" + this.sx + ", sy:" + this.sy + ", r:" + this.r + ", large:" + this.large + ", flip:" + this.flip + ", ex:" + this.ex + ", ey:" + this.ey + "]";
@@ -3033,7 +3120,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
     },
     getBoundingBox: function () {
-      return xypic.Frame.Circle(this.x, this.y, this.r);
+      return xypic.Frame.Ellipse(this.x, this.y, this.r, this.r, this.r, this.r);
     },
     toString: function () {
       return "FullCircleShape[x:" + this.x + ", y:" + this.y + ", r:" + this.r + "]";
@@ -6033,12 +6120,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         t = Math.min.apply(Math, ts);
       } else if (frame.isCircle()) {
-        var cx = frame.x, cy = frame.y, r = frame.r, pi = Math.PI;
+        var pi = Math.PI;
+        var x = frame.x;
+        var y = frame.y;
+        var l = frame.l;
+        var r = frame.r;
+        var u = frame.u;
+        var d = frame.d;
+        var cx = x + (r - l) / 2;
+        var cy = y + (u - d) / 2;
+        var rx = (l + r) / 2;
+        var ry = (u + d) / 2;
         
-        var arc0 = xypic.CurveSegment.Arc(cx, cy, r, -pi, -pi/2);
-        var arc1 = xypic.CurveSegment.Arc(cx, cy, r, -pi/2, 0);
-        var arc2 = xypic.CurveSegment.Arc(cx, cy, r, 0, pi/2);
-        var arc3 = xypic.CurveSegment.Arc(cx, cy, r, pi/2, pi);
+        var delta = pi / 180; // overlapping
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
         
         var bezier = xypic.CurveSegment.QuadBezier(xypic.Curve.QuadBezier(cp0, cp1, cp2), 0, 1);
         
@@ -6051,9 +6149,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (intersec.length === 0) {
           return undefined;
         } else {
-          t = (intersec[0][1].min + intersec[0][1].max)/2;
+          t = (intersec[0][1].min + intersec[0][1].max) / 2;
           for (var i = 1; i < intersec.length; i++) { 
-            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
+            var ttmp = (intersec[i][1].min + intersec[i][1].max) / 2;
             if (t > ttmp) { t = ttmp; }
           }
         }
@@ -6061,7 +6159,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var tx = px(t);
       var ty = py(t);
       cp0 = xypic.Frame.Point(tx, ty);
-      cp1 = xypic.Frame.Point(x1+t*(x2-x1), y1+t*(y2-y1));
+      cp1 = xypic.Frame.Point(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
       return [cp0, cp1 ,cp2];
     },
     countOfSegments: function () { return 1; },
@@ -6303,12 +6401,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         t = Math.min.apply(Math, ts);
       } else if (frame.isCircle()) {
-        var cx = frame.x, cy = frame.y, r = frame.r, pi = Math.PI;
+        var pi = Math.PI;
+        var x = frame.x;
+        var y = frame.y;
+        var l = frame.l;
+        var r = frame.r;
+        var u = frame.u;
+        var d = frame.d;
+        var cx = x + (r - l) / 2;
+        var cy = y + (u - d) / 2;
+        var rx = (l + r) / 2;
+        var ry = (u + d) / 2;
         
-        var arc0 = xypic.CurveSegment.Arc(cx, cy, r, -pi, -pi/2);
-        var arc1 = xypic.CurveSegment.Arc(cx, cy, r, -pi/2, 0);
-        var arc2 = xypic.CurveSegment.Arc(cx, cy, r, 0, pi/2);
-        var arc3 = xypic.CurveSegment.Arc(cx, cy, r, pi/2, pi);
+        var delta = pi / 180; // overlapping
+        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
+        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
+        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
+        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
         
         var bezier = xypic.CurveSegment.CubicBezier(xypic.Curve.CubicBezier(cp0, cp1, cp2, cp3), 0, 1);
         
@@ -6904,7 +7013,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     fatLine: function () {
       var a = (this.p1.y - this.p0.y), b = (this.p0.x - this.p1.x), c = this.p1.x*this.p0.y - this.p0.x*this.p1.y;
-      var l = Math.sqrt(a*a + b*b);
+      var l = Math.sqrt(a * a + b * b);
       if (l === 0) {
         a = 1;
         b = 0;
@@ -7033,49 +7142,88 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   xypic.CurveSegment.Arc = xypic.CurveSegment.Subclass({
-    Init: function (x, y, r, angleMin, angleMax) {
+    Init: function (x, y, rx, ry, angleMin, angleMax) {
       this.x = x;
       this.y = y;
-      this.r = r;
+      this.rx = rx;
+      this.ry = ry;
       this.angleMin = angleMin;
       this.angleMax = angleMax;
     },
-    paramRange: function () { return {min:this.angleMin, max:this.angleMax}; },
+    paramRange: function () { return { min:this.angleMin, max:this.angleMax }; },
     paramLength: function () { return this.angleMax - this.angleMin; },
     normalizeAngle: function (angle) {
-      angle = angle % 2*Math.PI;
+      angle = angle % 2 * Math.PI;
       if (angle > Math.PI) {
-        return angle - 2*Math.PI;
+        return angle - 2 * Math.PI;
       }
       if (angle < -Math.PI) {
-        return angle + 2*Math.PI;
+        return angle + 2 * Math.PI;
       }
       return angle;
     },
     containsParam: function (angle) { return angle >= this.angleMin && angle <= this.angleMax; }, 
     fatLine: function () {
-      var tp = (this.angleMax+this.angleMin)/2;
-      var tm = (this.angleMax-this.angleMin)/2;
+      var rx = this.rx;
+      var ry = this.ry;
+      var tp = (this.angleMax + this.angleMin) / 2;
+      var tm = (this.angleMax - this.angleMin) / 2;
       var cosp = Math.cos(tp), sinp = Math.sin(tp);
-      var Lmin = [-cosp, -sinp, this.x*cosp + this.y*sinp + this.r*Math.cos(tm)];
-      var Lmax = [-cosp, -sinp, this.r + this.x*cosp + this.y*sinp];
-      return {min:Lmin, max:Lmax};
+      var r = Math.sqrt(rx * rx * sinp * sinp + ry * ry * cosp * cosp);
+      if (r < AST.xypic.machinePrecision) {
+        var Lmin = [1, 0, this.x * ry * cosp + this.y * rx * sinp + rx * ry * Math.cos(tm)];
+        var Lmax = [1, 0, this.x * ry * cosp + this.y * rx * sinp + rx * ry];
+      } else {
+        var rrx = rx / r;
+        var rry = ry / r;
+        var Lmin = [-rry * cosp, -rrx * sinp, this.x * rry * cosp + this.y * rrx * sinp + rx * ry / r * Math.cos(tm)];
+        var Lmax = [-rry * cosp, -rrx * sinp, this.x * rry * cosp + this.y * rrx * sinp + rx * ry / r];
+      }
+      return { min:Lmin, max:Lmax };
     },
     clip: function (angleMin, angleMax) {
-      return xypic.CurveSegment.Arc(this.x, this.y, this.r, angleMin, angleMax);
+      return xypic.CurveSegment.Arc(this.x, this.y, this.rx, this.ry, angleMin, angleMax);
     },
-    clippedRange: function (lineMin, lineMax) {
-      var x = this.x, y = this.y, r = this.r, angleMin = this.angleMin, angleMax = this.angleMax;
-      var d = -(lineMin[0]*x+lineMin[1]*y+lineMin[2]);
+    toCircleLine: function (line, x0, y0, rx, ry) {
+      var a = line[0];
+      var b = line[1];
+      var c = line[2];
+      var a2 = a * rx;
+      var b2 = b * ry;
+      var c2 = c * rx + (rx - ry) * b * y0;
+      var l = Math.sqrt(a2 * a2 + b2 * b2);
+      if (l < AST.xypic.machinePrecision) {
+        a2 = 1;
+        b2 = 0;
+      } else {
+        a2 /= l;
+        b2 /= l;
+        c2 /= l;
+      }
+      return [a2, b2, c2];
+    },
+    clippedRange: function (origLineMin, origLineMax) {
+      var x = this.x;
+      var y = this.y;
+      var rx = this.rx;
+      var ry = this.ry;
+      
+      var lineMin = this.toCircleLine(origLineMin, x, y, rx, ry);
+      var lineMax = this.toCircleLine(origLineMax, x, y, rx, ry);
+      var r = rx;
+      
+      var angleMin = this.angleMin;
+      var angleMax = this.angleMax;
+      var d = -(lineMin[0] * x + lineMin[1] * y + lineMin[2]);
       
       var sign = xypic.Util.sign2;
       var angles = [];
-      var det = r*r - d*d;
+      var det = r * r - d * d;
       if (det >= 0) {
-        var xp = lineMin[0]*d - lineMin[1]*Math.sqrt(r*r - d*d);
-        var yp = lineMin[1]*d + lineMin[0]*Math.sqrt(r*r - d*d);
-        var xm = lineMin[0]*d + lineMin[1]*Math.sqrt(r*r - d*d);
-        var ym = lineMin[1]*d - lineMin[0]*Math.sqrt(r*r - d*d);
+        var xp = lineMin[0] * d - lineMin[1] * Math.sqrt(r * r - d * d);
+        var yp = lineMin[1] * d + lineMin[0] * Math.sqrt(r * r - d * d);
+        var xm = lineMin[0] * d + lineMin[1] * Math.sqrt(r * r - d * d);
+        var ym = lineMin[1] * d - lineMin[0] * Math.sqrt(r * r - d * d);
         var anglep = Math.atan2(yp, xp);
         var anglem = Math.atan2(ym, xm);
         if (this.containsParam(anglep)) {
@@ -7086,8 +7234,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       }
       
-      var d0 = -(lineMin[0]*(x+r*Math.cos(angleMin)) + lineMin[1]*(y+r*Math.sin(angleMin)) + lineMin[2]);
-      var d1 = -(lineMin[0]*(x+r*Math.cos(angleMax)) + lineMin[1]*(y+r*Math.sin(angleMax)) + lineMin[2]);
+      var d0 = -(lineMin[0] * (x + r * Math.cos(angleMin)) + lineMin[1] * (y + r * Math.sin(angleMin)) + lineMin[2]);
+      var d1 = -(lineMin[0] * (x + r * Math.cos(angleMax)) + lineMin[1] * (y + r * Math.sin(angleMax)) + lineMin[2]);
       var angleMinAgainstLineMin, angleMaxAgainstLineMin;
       if (d0 < 0) {
         if (angles.length == 0) {
@@ -7108,14 +7256,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         angleMaxAgainstLineMin = this.angleMax;
       }
       
-      var d = lineMax[0]*x+lineMax[1]*y+lineMax[2];
+      var d = lineMax[0] * x + lineMax[1] * y + lineMax[2];
       var angles = [];
-      var det = r*r - d*d;
+      var det = r * r - d * d;
       if (det >= 0) {
-        var xp = -lineMin[0]*d + lineMin[1]*Math.sqrt(r*r - d*d);
-        var yp = -lineMin[1]*d - lineMin[0]*Math.sqrt(r*r - d*d);
-        var xm = -lineMin[0]*d - lineMin[1]*Math.sqrt(r*r - d*d);
-        var ym = -lineMin[1]*d + lineMin[0]*Math.sqrt(r*r - d*d);
+        var xp = -lineMin[0] * d + lineMin[1] * Math.sqrt(r * r - d * d);
+        var yp = -lineMin[1] * d - lineMin[0] * Math.sqrt(r * r - d * d);
+        var xm = -lineMin[0] * d - lineMin[1] * Math.sqrt(r * r - d * d);
+        var ym = -lineMin[1] * d + lineMin[0] * Math.sqrt(r * r - d * d);
         var anglep = Math.atan2(yp, xp);
         var anglem = Math.atan2(ym, xm);
         if (this.containsParam(anglep)) {
@@ -7126,8 +7274,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       }
       
-      var d0 = lineMax[0]*(x+r*Math.cos(angleMin)) + lineMax[1]*(y+r*Math.sin(angleMin)) + lineMax[2];
-      var d1 = lineMax[0]*(x+r*Math.cos(angleMax)) + lineMax[1]*(y+r*Math.sin(angleMax)) + lineMax[2];
+      var d0 = lineMax[0] * (x + r * Math.cos(angleMin)) + lineMax[1] * (y + r * Math.sin(angleMin)) + lineMax[2];
+      var d1 = lineMax[0] * (x + r * Math.cos(angleMax)) + lineMax[1] * (y + r * Math.sin(angleMax)) + lineMax[2];
       var angleMinAgainstLineMax, angleMaxAgainstLineMax;
       if (d0 < 0) {
         if (angles.length == 0) {
@@ -7148,17 +7296,20 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         angleMaxAgainstLineMax = this.angleMax;
       }
       
-      return {min:Math.max(angleMinAgainstLineMin, angleMinAgainstLineMax), max:Math.min(angleMaxAgainstLineMin, angleMaxAgainstLineMax)};
+      return {
+        min:Math.max(angleMinAgainstLineMin, angleMinAgainstLineMax), 
+        max:Math.min(angleMaxAgainstLineMin, angleMaxAgainstLineMax)
+      };
     },
     drawFatLine: function () {
       var fatLine = this.fatLine();
       var lmin = fatLine.min;
       var lmax = fatLine.max;
       var y = function (x, l) {
-        return -(x*l[0] + l[2])/l[1];
+        return -(x * l[0] + l[2]) / l[1];
       }
-      var x0 = this.x+this.r*Math.cos(this.angleMin);
-      var x1 = this.x+this.r*Math.cos(this.angleMax);
+      var x0 = this.x + this.r * Math.cos(this.angleMin);
+      var x1 = this.x + this.r * Math.cos(this.angleMax);
       var xmin = x0;
       var xmax = x1;
       svgForDebug.createSVGElement("line", {
@@ -8097,7 +8248,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var x = env.c.x;
       var y = env.c.y;
       var circleShape = this.cir.toDropShape(context, x, y, r);
-      env.c = xypic.Frame.Circle(x, y, r);
+      env.c = xypic.Frame.Ellipse(x, y, r, r, r, r);
       
       return circleShape;
     },
@@ -8443,11 +8594,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           switch (this.variant) {
             case "2":
               shape = xypic.Shape.GT2ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.GT3ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
               if (this.variant === "^") {
@@ -8463,11 +8616,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           switch (this.variant) {
             case "2":
               shape = xypic.Shape.LT2ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.LT3ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
               if (this.variant === "^") {
@@ -8607,11 +8762,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               break;
             case "2":
               shape = xypic.Shape.GTGT2ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.GTGT3ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
               shape = xypic.Shape.GTGTArrowheadShape(c, angle);
@@ -8628,11 +8785,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               break;
             case "2":
               shape = xypic.Shape.LTLT2ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.LTLT3ArrowheadShape(c, angle);
-              env.c = xypic.Frame.Circle(c.x, c.y, shape.r);
+              var r = shape.r;
+              env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
               shape = xypic.Shape.LTLTArrowheadShape(c, angle);
@@ -9350,7 +9509,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     modifyShape: function (context, objectShape) {
       var c = context.env.c;
-      context.env.c = xypic.Frame.Circle(c.x, c.y, Math.max(c.l, c.r, c.u, c.d));
+      context.env.c = xypic.Frame.Ellipse(c.x, c.y, c.l, c.r, c.u, c.d);
       return objectShape;
     }
   });
