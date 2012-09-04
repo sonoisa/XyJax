@@ -16,7 +16,6 @@
     tex2jax: {inlineMath: [["$","$"],["\\(","\\)"]]},
     TeX: {extensions: ["xypic.js", "AMSmath.js","AMSsymbols.js"]}
   });
-
 </script>
 <script type="text/javascript" src="../MathJax.js"></script>
 
@@ -31,6 +30,18 @@
 
 Xy-picの例$(\begin{xy}(0,0);<1cm,0mm>**@{-} ?>*@{>} ?<>*!/_2mm/{\scriptstyle f}\end{xy})$です。
 Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
+
+\[
+\begin{xy}
+(0,0)*=<30pt,10pt>[F**:red]{} +/r30pt/*{\text{red}}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+*+<1.5pt>[F**:white]++[F**:red][F,:<5pt>]{\text{text with background}}
+\end{xy}
+\]
 
 \[
 \begin{xy}
@@ -88,6 +99,10 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 +/d3em/*++{\text{\frm{oo}}} *\frm{oo} *\frm{.},
 +/d3em/*++{\text{\frm{e}}} *\frm{e} *\frm{.},
 +/d3em/*++{\text{\frm{ee}}} *\frm{ee} *\frm{.},
++/d3em/*++[]{\text{\frm{*}}} *\frm{*},
++/d1.8em/*++[]{\text{\frm{*}}},
++/d2em/*++[o]{\text{\frm{*}}} *\frm{*},
++/d1.8em/*++[o]{\text{\frm{*}}},
 
 "0"+/r10em/*++{\text{\frm{.}}} *\frm{.},
 +/d3em/*++{\text{\frm<8pt>{-}}} *\frm<8pt>{-} *\frm{.},
@@ -98,6 +113,10 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 +/d3em/*++{\text{\frm<8pt>{oo}}} *\frm<8pt>{oo} *\frm{.},
 +/d3em/*++{\text{\frm<20pt,8pt>{e}}} *\frm<20pt,8pt>{e} *\frm{.},
 +/d3em/*++{\text{\frm<20pt,8pt>{ee}}} *\frm<20pt,8pt>{ee} *\frm{.},
++/d3em/*++[]{\text{\frm{**}}} *\frm{**},
++/d1.8em/*++[]{\text{\frm{**}}},
++/d2em/*++[o]{\text{\frm{**}}} *\frm{**},
++/d1.8em/*++[o]{\text{\frm{**}}},
 
 "0"+/r20em/*++{\text{\frm<20pt>{.}}} *\frm<20pt>{.},
 +/d3em/*++{\text{\frm<20pt>{-}}} *\frm<20pt>{-} *\frm{.},
@@ -108,6 +127,10 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 +/d3em/*++{\text{\frm{-o}}} *\frm{-o} *\frm{.},
 +/d3em/*++{\text{\frm{.e}}} *\frm{.e} *\frm{.},
 +/d3em/*++{\text{\frm{-e}}} *\frm{-e} *\frm{.},
++/d3em/*++[]{\text{\frm<6pt>{*}}} *\frm{.} *\frm<6pt>{*},
++/d1.8em/*++[]{\text{\frm<6pt>{*}}},
++/d2em/*++[o]{\text{\frm<6pt>{*}}} *\frm{.e} *\frm<6pt>{*},
++/d1.8em/*++[o]{\text{\frm<6pt>{*}}},
 \end{xy}
 \]
 
