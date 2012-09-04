@@ -2783,18 +2783,21 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return this.toRect({l:xm, r:xm, u:ym, d:ym});
     },
     toSize: function (width, height) {
-      return this.toRect({l:width/2, r:width/2, u:height/2, d:height/2});
+      return this.toRect({ l:width / 2, r:width / 2, u:height / 2, d:height / 2 });
     },
     growTo: function (width, height) {
       var w = Math.max(0, width);
       var h = Math.max(0, height);
-      return this.toRect({l:w/2, r:w/2, u:h/2, d:h/2});
+      return this.toRect({ l:w / 2, r:w / 2, u:h / 2, d:h / 2 });
     },
     shrinkTo: function (width, height) {
       return this;
     },
     move: function (x, y) {
       return xypic.Frame.Point(x, y);
+    },
+    shiftFrame: function (dx, dy) {
+      return this;
     },
     rotate: function (angle) {
       return this;
@@ -2887,20 +2890,28 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
     },
     toSize: function (width, height) {
-      return this.toRect({l:width/2, r:width/2, u:height/2, d:height/2});
+      return this.toRect({ l:width / 2, r:width / 2, u:height / 2, d:height / 2 });
     },
     growTo: function (width, height) {
       var w = Math.max(this.l+this.r, width);
       var h = Math.max(this.u+this.d, height);
-      return this.toRect({l:w/2, r:w/2, u:h/2, d:h/2});
+      return this.toRect({ l:w / 2, r:w / 2, u:h / 2, d:h / 2 });
     },
     shrinkTo: function (width, height) {
       var w = Math.min(this.l+this.r, width);
       var h = Math.min(this.u+this.d, height);
-      return this.toRect({l:w/2, r:w/2, u:h/2, d:h/2});
+      return this.toRect({ l:w / 2, r:w / 2, u:h / 2, d:h / 2 });
     },
     move: function (x, y) {
-      return xypic.Frame.Rect(x, y, {l:this.l, r:this.r, u:this.u, d:this.d});
+      return xypic.Frame.Rect(x, y, { l:this.l, r:this.r, u:this.u, d:this.d });
+    },
+    shiftFrame: function (dx, dy) {
+      return xypic.Frame.Rect(this.x, this.y, {
+        l:Math.max(0, this.l - dx),
+        r:Math.max(0, this.r + dx),
+        u:Math.max(0, this.u + dy),
+        d:Math.max(0, this.d - dy)
+      });
     },
     rotate: function (angle) {
       var c = Math.cos(angle), s = Math.sin(angle);
@@ -3064,6 +3075,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     move: function (x, y) {
       return xypic.Frame.Ellipse(x, y, this.l, this.r, this.u, this.d);
+    },
+    shiftFrame: function (dx, dy) {
+      return xypic.Frame.Ellipse(this.x, this.y, 
+        Math.max(0, this.l - dx),
+        Math.max(0, this.r + dx),
+        Math.max(0, this.u + dy),
+        Math.max(0, this.d - dy)
+      );
     },
     rotate: function (angle) {
       return this;
@@ -9693,8 +9712,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      // TODO impl [l]
-      return objectShape;
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return objectShape;
+      }
+      var width = c.r + c.l;
+      var height = c.u + c.d;
+      var dx, dy;
+      if (width < height) {
+        dx = (c.l - c.r) / 2;
+        dy = (c.d - c.u) / 2;
+      } else {
+        dx = -c.r + height / 2;
+        dy = (c.d - c.u) / 2;
+      }
+      env.c = env.c.shiftFrame(dx, dy);
+      return xypic.Shape.TranslateShape(dx, dy, objectShape);
     }
   });
   
@@ -9702,8 +9736,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      // TODO impl [r]
-      return objectShape;
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return objectShape;
+      }
+      var width = c.r + c.l;
+      var height = c.u + c.d;
+      var dx, dy;
+      if (width < height) {
+        dx = (c.l - c.r) / 2;
+        dy = (c.d - c.u) / 2;
+      } else {
+        dx = c.l - height / 2;
+        dy = (c.d - c.u) / 2;
+      }
+      env.c = env.c.shiftFrame(dx, dy);
+      return xypic.Shape.TranslateShape(dx, dy, objectShape);
     }
   });
   
@@ -9711,8 +9760,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      // TODO impl [u]
-      return objectShape;
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return objectShape;
+      }
+      var width = c.r + c.l;
+      var height = c.u + c.d;
+      var dx, dy;
+      if (width > height) {
+        dx = (c.l - c.r) / 2;
+        dy = (c.d - c.u) / 2;
+      } else {
+        dx = (c.l - c.r) / 2;
+        dy = c.d - width / 2;
+      }
+      env.c = env.c.shiftFrame(dx, dy);
+      return xypic.Shape.TranslateShape(dx, dy, objectShape);
     }
   });
   
@@ -9720,8 +9784,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      // TODO impl [d]
-      return objectShape;
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return objectShape;
+      }
+      var width = c.r + c.l;
+      var height = c.u + c.d;
+      var dx, dy;
+      if (width > height) {
+        dx = (c.l - c.r) / 2;
+        dy = (c.d - c.u) / 2;
+      } else {
+        dx = (c.l - c.r) / 2;
+        dy = -c.u + width / 2;
+      }
+      env.c = env.c.shiftFrame(dx, dy);
+      return xypic.Shape.TranslateShape(dx, dy, objectShape);
     }
   });
   
@@ -9729,8 +9808,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     preprocess: function (context) {
     },
     modifyShape: function (context, objectShape) {
-      // TODO impl [c]
-      return objectShape;
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return objectShape;
+      }
+      var dx, dy;
+      dx = (c.l - c.r) / 2;
+      dy = (c.d - c.u) / 2;
+      env.c = env.c.shiftFrame(dx, dy);
+      return xypic.Shape.TranslateShape(dx, dy, objectShape);
     }
   });
   
