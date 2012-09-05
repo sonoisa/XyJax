@@ -824,9 +824,11 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   });
   
   // <modifier> ::= '[' <shape> ']'
-  // <shape> ::= '.' | 'o' | 'l' | 'r' | 'u' | 'd' | 'c' 
+  // <shape> ::= '.' 
   //          | <frame_shape>
+  //          | <alphabets>
   //          | <empty>
+  // <alphabets> ::= /[a-zA-Z]+/
   AST.Modifier.Shape = MathJax.Object.Subclass({
     Init: function (shape) {
       this.shape = shape;
@@ -839,6 +841,13 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   AST.Modifier.Shape.Rect = MathJax.Object.Subclass({
     toString: function () { return ""; }
   });
+  AST.Modifier.Shape.Alphabets = MathJax.Object.Subclass({
+    Init: function (alphabets) {
+      this.alphabets = alphabets;
+    },
+    toString: function () { return this.alphabets; }
+  });
+  // xypic.ModifierRepositoryに格納されるもの
   AST.Modifier.Shape.Circle = MathJax.Object.Subclass({
     toString: function () { return "o"; }
   });
@@ -856,6 +865,12 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   });
   AST.Modifier.Shape.C = MathJax.Object.Subclass({
     toString: function () { return "c"; }
+  });
+  AST.Modifier.Shape.ChangeColor = MathJax.Object.Subclass({
+    Init: function (colorName) {
+      this.colorName = colorName;
+    },
+    toString: function () { return this.colorName; }
   });
   
   // <frame_shape> ::= 'F' <frame_main> ( ':' ( <frame_radius_vector> | <color_name> ))*
@@ -1909,19 +1924,17 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       );
     }),
     
-    // <shape> ::= '.' | 'o' | 'l' | 'r' | 'u' | 'd' | 'c' 
+    // <shape> ::= '.' 
     //          | <frame_shape>
+    //          | <alphabets>
     //          | <empty>
     shape: memo(function () {
       return or(
         lit(".").to(function () { return AST.Modifier.Shape.Point(); }),
-        lit("o").to(function () { return AST.Modifier.Shape.Circle(); }),
-        lit("l").to(function () { return AST.Modifier.Shape.L(); }),
-        lit("r").to(function () { return AST.Modifier.Shape.R(); }),
-        lit("u").to(function () { return AST.Modifier.Shape.U(); }),
-        lit("d").to(function () { return AST.Modifier.Shape.D(); }),
-        lit("c").to(function () { return AST.Modifier.Shape.C(); }),
         p.frameShape,
+        p.alphabets().to(function (c) {
+          return AST.Modifier.Shape.Alphabets(c);
+        }),
         success("rect").to(function () { return AST.Modifier.Shape.Rect(); })
       );
     }),
@@ -1942,6 +1955,11 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       )).to(function (mo) {
         return AST.Modifier.Shape.Frame(mo.head, mo.tail);
       });
+    }),
+    
+    // <alphabets> ::= /[a-zA-Z]+/
+    alphabets: memo(function () {
+      return regex(/^([a-zA-Z]+)/);
     }),
     
     // <color_name> ::= /[a-zA-Z][a-zA-Z0-9]*/
@@ -2393,6 +2411,189 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     reset();
   }
   
+  xypic.ModifierRepository = MathJax.Object.Subclass({
+    Init: function () {
+      this.userModifierMap = {};
+    },
+    get: function (modifierName) {
+      var modifier = xypic.ModifierRepository.embeddedModifierMap[modifierName];
+      if (modifier !== undefined) {
+        return modifier;
+      }
+      return this.userModifierMap[modifierName];
+    },
+    put: function (modifierName, modifier) {
+      if (xypic.ModifierRepository.embeddedModifierMap[shapeName] === undefined) {
+        this.userModifierMap[modifierName] = modifier;
+      }
+    },
+    duplicate: function () {
+      var newRepo = xypic.ModifierRepository();
+      for (var attr in this.userModifierMap) {
+        if (this.userModifierMap.hasOwnProperty(attr)) {
+          newRepo.userModifierMap[attr] = this.userModifierMap[attr];
+        }
+      }
+      return newRepo;
+    }
+  }, {
+    embeddedModifierMap: {
+      "o":AST.Modifier.Shape.Circle(),
+      "l":AST.Modifier.Shape.L(),
+      "r":AST.Modifier.Shape.R(),
+      "u":AST.Modifier.Shape.U(),
+      "d":AST.Modifier.Shape.D(),
+      "c":AST.Modifier.Shape.C(),
+      "aliceblue":AST.Modifier.Shape.ChangeColor("aliceblue"),
+      "antiquewhite":AST.Modifier.Shape.ChangeColor("antiquewhite"),
+      "aqua":AST.Modifier.Shape.ChangeColor("aqua"),
+      "aquamarine":AST.Modifier.Shape.ChangeColor("aquamarine"),
+      "azure":AST.Modifier.Shape.ChangeColor("azure"),
+      "beige":AST.Modifier.Shape.ChangeColor("beige"),
+      "bisque":AST.Modifier.Shape.ChangeColor("bisque"),
+      "black":AST.Modifier.Shape.ChangeColor("black"),
+      "blanchedalmond":AST.Modifier.Shape.ChangeColor("blanchedalmond"),
+      "blue":AST.Modifier.Shape.ChangeColor("blue"),
+      "blueviolet":AST.Modifier.Shape.ChangeColor("blueviolet"),
+      "brown":AST.Modifier.Shape.ChangeColor("brown"),
+      "burlywood":AST.Modifier.Shape.ChangeColor("burlywood"),
+      "cadetblue":AST.Modifier.Shape.ChangeColor("cadetblue"),
+      "chartreuse":AST.Modifier.Shape.ChangeColor("chartreuse"),
+      "chocolate":AST.Modifier.Shape.ChangeColor("chocolate"),
+      "coral":AST.Modifier.Shape.ChangeColor("coral"),
+      "cornflowerblue":AST.Modifier.Shape.ChangeColor("cornflowerblue"),
+      "cornsilk":AST.Modifier.Shape.ChangeColor("cornsilk"),
+      "crimson":AST.Modifier.Shape.ChangeColor("crimson"),
+      "cyan":AST.Modifier.Shape.ChangeColor("cyan"),
+      "darkblue":AST.Modifier.Shape.ChangeColor("darkblue"),
+      "darkcyan":AST.Modifier.Shape.ChangeColor("darkcyan"),
+      "darkgoldenrod":AST.Modifier.Shape.ChangeColor("darkgoldenrod"),
+      "darkgray":AST.Modifier.Shape.ChangeColor("darkgray"),
+      "darkgreen":AST.Modifier.Shape.ChangeColor("darkgreen"),
+      "darkgrey":AST.Modifier.Shape.ChangeColor("darkgrey"),
+      "darkkhaki":AST.Modifier.Shape.ChangeColor("darkkhaki"),
+      "darkmagenta":AST.Modifier.Shape.ChangeColor("darkmagenta"),
+      "darkolivegreen":AST.Modifier.Shape.ChangeColor("darkolivegreen"),
+      "darkorange":AST.Modifier.Shape.ChangeColor("darkorange"),
+      "darkorchid":AST.Modifier.Shape.ChangeColor("darkorchid"),
+      "darkred":AST.Modifier.Shape.ChangeColor("darkred"),
+      "darksalmon":AST.Modifier.Shape.ChangeColor("darksalmon"),
+      "darkseagreen":AST.Modifier.Shape.ChangeColor("darkseagreen"),
+      "darkslateblue":AST.Modifier.Shape.ChangeColor("darkslateblue"),
+      "darkslategray":AST.Modifier.Shape.ChangeColor("darkslategray"),
+      "darkslategrey":AST.Modifier.Shape.ChangeColor("darkslategrey"),
+      "darkturquoise":AST.Modifier.Shape.ChangeColor("darkturquoise"),
+      "darkviolet":AST.Modifier.Shape.ChangeColor("darkviolet"),
+      "deeppink":AST.Modifier.Shape.ChangeColor("deeppink"),
+      "deepskyblue":AST.Modifier.Shape.ChangeColor("deepskyblue"),
+      "dimgray":AST.Modifier.Shape.ChangeColor("dimgray"),
+      "dimgrey":AST.Modifier.Shape.ChangeColor("dimgrey"),
+      "dodgerblue":AST.Modifier.Shape.ChangeColor("dodgerblue"),
+      "firebrick":AST.Modifier.Shape.ChangeColor("firebrick"),
+      "floralwhite":AST.Modifier.Shape.ChangeColor("floralwhite"),
+      "forestgreen":AST.Modifier.Shape.ChangeColor("forestgreen"),
+      "fuchsia":AST.Modifier.Shape.ChangeColor("fuchsia"),
+      "gainsboro":AST.Modifier.Shape.ChangeColor("gainsboro"),
+      "ghostwhite":AST.Modifier.Shape.ChangeColor("ghostwhite"),
+      "gold":AST.Modifier.Shape.ChangeColor("gold"),
+      "goldenrod":AST.Modifier.Shape.ChangeColor("goldenrod"),
+      "gray":AST.Modifier.Shape.ChangeColor("gray"),
+      "grey":AST.Modifier.Shape.ChangeColor("grey"),
+      "green":AST.Modifier.Shape.ChangeColor("green"),
+      "greenyellow":AST.Modifier.Shape.ChangeColor("greenyellow"),
+      "honeydew":AST.Modifier.Shape.ChangeColor("honeydew"),
+      "hotpink":AST.Modifier.Shape.ChangeColor("hotpink"),
+      "indianred":AST.Modifier.Shape.ChangeColor("indianred"),
+      "indigo":AST.Modifier.Shape.ChangeColor("indigo"),
+      "ivory":AST.Modifier.Shape.ChangeColor("ivory"),
+      "khaki":AST.Modifier.Shape.ChangeColor("khaki"),
+      "lavender":AST.Modifier.Shape.ChangeColor("lavender"),
+      "lavenderblush":AST.Modifier.Shape.ChangeColor("lavenderblush"),
+      "lawngreen":AST.Modifier.Shape.ChangeColor("lawngreen"),
+      "lemonchiffon":AST.Modifier.Shape.ChangeColor("lemonchiffon"),
+      "lightblue":AST.Modifier.Shape.ChangeColor("lightblue"),
+      "lightcoral":AST.Modifier.Shape.ChangeColor("lightcoral"),
+      "lightcyan":AST.Modifier.Shape.ChangeColor("lightcyan"),
+      "lightgoldenrodyellow":AST.Modifier.Shape.ChangeColor("lightgoldenrodyellow"),
+      "lightgray":AST.Modifier.Shape.ChangeColor("lightgray"),
+      "lightgreen":AST.Modifier.Shape.ChangeColor("lightgreen"),
+      "lightgrey":AST.Modifier.Shape.ChangeColor("lightgrey"),
+      "lightpink":AST.Modifier.Shape.ChangeColor("lightpink"),
+      "lightsalmon":AST.Modifier.Shape.ChangeColor("lightsalmon"),
+      "lightseagreen":AST.Modifier.Shape.ChangeColor("lightseagreen"),
+      "lightskyblue":AST.Modifier.Shape.ChangeColor("lightskyblue"),
+      "lightslategray":AST.Modifier.Shape.ChangeColor("lightslategray"),
+      "lightslategrey":AST.Modifier.Shape.ChangeColor("lightslategrey"),
+      "lightsteelblue":AST.Modifier.Shape.ChangeColor("lightsteelblue"),
+      "lightyellow":AST.Modifier.Shape.ChangeColor("lightyellow"),
+      "lime":AST.Modifier.Shape.ChangeColor("lime"),
+      "limegreen":AST.Modifier.Shape.ChangeColor("limegreen"),
+      "linen":AST.Modifier.Shape.ChangeColor("linen"),
+      "magenta":AST.Modifier.Shape.ChangeColor("magenta"),
+      "maroon":AST.Modifier.Shape.ChangeColor("maroon"),
+      "mediumaquamarine":AST.Modifier.Shape.ChangeColor("mediumaquamarine"),
+      "mediumblue":AST.Modifier.Shape.ChangeColor("mediumblue"),
+      "mediumorchid":AST.Modifier.Shape.ChangeColor("mediumorchid"),
+      "mediumpurple":AST.Modifier.Shape.ChangeColor("mediumpurple"),
+      "mediumseagreen":AST.Modifier.Shape.ChangeColor("mediumseagreen"),
+      "mediumslateblue":AST.Modifier.Shape.ChangeColor("mediumslateblue"),
+      "mediumspringgreen":AST.Modifier.Shape.ChangeColor("mediumspringgreen"),
+      "mediumturquoise":AST.Modifier.Shape.ChangeColor("mediumturquoise"),
+      "mediumvioletred":AST.Modifier.Shape.ChangeColor("mediumvioletred"),
+      "midnightblue":AST.Modifier.Shape.ChangeColor("midnightblue"),
+      "mintcream":AST.Modifier.Shape.ChangeColor("mintcream"),
+      "mistyrose":AST.Modifier.Shape.ChangeColor("mistyrose"),
+      "moccasin":AST.Modifier.Shape.ChangeColor("moccasin"),
+      "navajowhite":AST.Modifier.Shape.ChangeColor("navajowhite"),
+      "navy":AST.Modifier.Shape.ChangeColor("navy"),
+      "oldlace":AST.Modifier.Shape.ChangeColor("oldlace"),
+      "olive":AST.Modifier.Shape.ChangeColor("olive"),
+      "olivedrab":AST.Modifier.Shape.ChangeColor("olivedrab"),
+      "orange":AST.Modifier.Shape.ChangeColor("orange"),
+      "orangered":AST.Modifier.Shape.ChangeColor("orangered"),
+      "orchid":AST.Modifier.Shape.ChangeColor("orchid"),
+      "palegoldenrod":AST.Modifier.Shape.ChangeColor("palegoldenrod"),
+      "palegreen":AST.Modifier.Shape.ChangeColor("palegreen"),
+      "paleturquoise":AST.Modifier.Shape.ChangeColor("paleturquoise"),
+      "palevioletred":AST.Modifier.Shape.ChangeColor("palevioletred"),
+      "papayawhip":AST.Modifier.Shape.ChangeColor("papayawhip"),
+      "peachpuff":AST.Modifier.Shape.ChangeColor("peachpuff"),
+      "peru":AST.Modifier.Shape.ChangeColor("peru"),
+      "pink":AST.Modifier.Shape.ChangeColor("pink"),
+      "plum":AST.Modifier.Shape.ChangeColor("plum"),
+      "powderblue":AST.Modifier.Shape.ChangeColor("powderblue"),
+      "purple":AST.Modifier.Shape.ChangeColor("purple"),
+      "red":AST.Modifier.Shape.ChangeColor("red"),
+      "rosybrown":AST.Modifier.Shape.ChangeColor("rosybrown"),
+      "royalblue":AST.Modifier.Shape.ChangeColor("royalblue"),
+      "saddlebrown":AST.Modifier.Shape.ChangeColor("saddlebrown"),
+      "salmon":AST.Modifier.Shape.ChangeColor("salmon"),
+      "sandybrown":AST.Modifier.Shape.ChangeColor("sandybrown"),
+      "seagreen":AST.Modifier.Shape.ChangeColor("seagreen"),
+      "seashell":AST.Modifier.Shape.ChangeColor("seashell"),
+      "sienna":AST.Modifier.Shape.ChangeColor("sienna"),
+      "silver":AST.Modifier.Shape.ChangeColor("silver"),
+      "skyblue":AST.Modifier.Shape.ChangeColor("skyblue"),
+      "slateblue":AST.Modifier.Shape.ChangeColor("slateblue"),
+      "slategray":AST.Modifier.Shape.ChangeColor("slategray"),
+      "slategrey":AST.Modifier.Shape.ChangeColor("slategrey"),
+      "snow":AST.Modifier.Shape.ChangeColor("snow"),
+      "springgreen":AST.Modifier.Shape.ChangeColor("springgreen"),
+      "steelblue":AST.Modifier.Shape.ChangeColor("steelblue"),
+      "tan":AST.Modifier.Shape.ChangeColor("tan"),
+      "teal":AST.Modifier.Shape.ChangeColor("teal"),
+      "thistle":AST.Modifier.Shape.ChangeColor("thistle"),
+      "tomato":AST.Modifier.Shape.ChangeColor("tomato"),
+      "turquoise":AST.Modifier.Shape.ChangeColor("turquoise"),
+      "violet":AST.Modifier.Shape.ChangeColor("violet"),
+      "wheat":AST.Modifier.Shape.ChangeColor("wheat"),
+      "white":AST.Modifier.Shape.ChangeColor("white"),
+      "whitesmoke":AST.Modifier.Shape.ChangeColor("whitesmoke"),
+      "yellow":AST.Modifier.Shape.ChangeColor("yellow"),
+      "yellowgreen":AST.Modifier.Shape.ChangeColor("yellowgreen")
+    }
+  });
+  
   var svgForDebug;
   var svgForTestLayout;
   
@@ -2408,6 +2609,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   xypic.Graphics.SVG = xypic.Graphics.Subclass({
     createGroup: function (transform) {
       return xypic.Graphics.SVG.Group(this, transform);
+    },
+    createChangeColorGroup: function (color) {
+      return xypic.Graphics.SVG.ChangeColorGroup(this, color);
     },
     createSVGElement: function (type, def) {
       var obj = xypic.Graphics.createElement(type);
@@ -2455,6 +2659,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       svg.appendChild(this.drawArea);
       this.svg = svg;
       this.boundingBox = undefined;
+      this.color = color;
     },
     stack: function () { return this._stack; },
     setHeight: function (height) {
@@ -2471,6 +2676,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     getOrigin: function () {
       return { x:0, y:0 };
+    },
+    getCurrentColor: function () {
+      return this.color;
     }
   });
   
@@ -2543,6 +2751,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       } else {
         this.origin = transform.apply(parentOrigin.x, parentOrigin.y);
       }
+      memoize(this, "getCurrentColor");
     },
     stack: function () { return this.parent.stack(); },
     remove: function () {
@@ -2553,8 +2762,37 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     getOrigin: function () {
       return this.origin;
+    },
+    getCurrentColor: function () {
+      return this.parent.getCurrentColor();
     }
   });
+  
+  xypic.Graphics.SVG.ChangeColorGroup = xypic.Graphics.SVG.Subclass({
+    Init: function (parent, color) {
+      this.parent = parent;
+      this.drawArea = parent.createSVGElement("g", {
+        stroke: color,
+        fill: color,
+      });
+      this.color = color;
+      memoize(this, "getOrigin");
+    },
+    stack: function () { return this.parent.stack(); },
+    remove: function () {
+      this.drawArea.parentNode.removeChild(this.drawArea);
+    },
+    extendBoundingBox: function (boundingBox) {
+      this.parent.extendBoundingBox(boundingBox);
+    },
+    getOrigin: function () {
+      return this.parent.getOrigin();
+    },
+    getCurrentColor: function () {
+      return this.color;
+    }
+  });
+  
   xypic.Graphics.Augment({}, {
     createSVG: function (stack, height, depth, width, strokeWidth, color, def) {
       return xypic.Graphics.SVG.World(stack, height, depth, width, strokeWidth, color, def);
@@ -2604,16 +2842,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       span = this.HTMLcreateSpan(span);
       var stack = HTMLCSS.createStack(span);
       
-      var bbox = {h:1, d:0, w:1, lw:0, rw:1};
+      var bbox = { h:1, d:0, w:1, lw:0, rw:1 };
       var H = bbox.h, D = bbox.d, W = bbox.w;
       var frame = HTMLCSS.createFrame(stack, H + D, 0, W, t, "none");
-      frame.id = "MathJax-frame-"+this.spanID+HTMLCSS.idPostfix;
+      frame.id = "MathJax-frame-" + this.spanID + HTMLCSS.idPostfix;
       
       var svg;
       var color = "black";
       if (HTMLCSS.useSVG) {
         svg = xypic.Graphics.createSVG(stack, H, D, W, t, color, {
-          viewBox:[0, -em2px(H+D), em2px(W), em2px(H+D)].join(" "),
+          viewBox:[0, -em2px(H + D), em2px(W), em2px(H + D)].join(" "),
           overflow:"visible"
         });
         svgForDebug = svg;
@@ -2642,21 +2880,21 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               var to = textObjects[i];
               var x = parseFloat(to.getAttribute("x"));
               var y = parseFloat(to.getAttribute("y"));
-              to.style.left = (x - (box.x - box.l - p)) + "em";
-              to.style.top = (y + (box.y - box.d)) + "em";
+              to.style.left = "" + em2px(x - (box.x - box.l - p)) + "px";
+              to.style.top = "" + em2px(y + (box.y - box.d)) + "px";
             }
             
-            bbox = {h:(box.u+box.d+p), d:p, w:(box.l+box.r+2*p), lw:0, rw:(box.l+box.r+2*p)}
+            bbox = { h:(box.u + box.d + p), d:p, w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
             span.bbox = bbox;
             D = p;
-            W = box.l+box.r+2*p;
-            H = box.h+box.d+p;
+            W = box.l + box.r + 2 * p;
+            H = box.h + box.d + p;
             
             HTMLCSS.placeBox(scale, 0, -D, true);
             frame.style.width = HTMLCSS.Em(W);
-            frame.style.height = HTMLCSS.Em(H+D);
+            frame.style.height = HTMLCSS.Em(H + D);
             HTMLCSS.addBox(stack, frame); 
-            HTMLCSS.placeBox(frame, W-1, -D, true);
+            HTMLCSS.placeBox(frame, W - 1, -D, true);
             this.HTMLhandleSpace(span);
             this.HTMLhandleColor(span);
           } else {
@@ -3178,6 +3416,24 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  xypic.Shape.ChangeColorShape = xypic.Shape.Subclass({
+    Init: function (color, shape) {
+      this.color = color;
+      this.shape = shape;
+      memoize(this, "getBoundingBox");
+    },
+    draw: function (svg) {
+      var g = svg.createChangeColorGroup(this.color);
+      this.shape.draw(g);
+    },
+    getBoundingBox: function () {
+      return this.shape.getBoundingBox();
+    },
+    toString: function () {
+      return "" + this.shape + ", color:" + this.color;
+    }
+  });
+  
   xypic.Shape.CircleSegmentShape = xypic.Shape.Subclass({
     Init: function (x, y, sx, sy, r, large, flip, ex, ey) {
       this.x = x;
@@ -3595,7 +3851,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var p = HTMLCSS.length2em("0.1em");
       var mathSpan = HTMLCSS.Element("span", {
         className:"MathJax", 
-        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute" /*, "border":"0.1px dashed" */ }
+        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute", color:svg.getCurrentColor() /*, "border":"0.1px dashed" */ }
       });
       
       svg.stack().appendChild(mathSpan);
@@ -7781,6 +8037,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.p = this.c = xypic.Env.originPosition;
       this.shouldCapturePos = false;
       this.capturedPositions = FP.List.empty;
+      this.modifierRepository = xypic.ModifierRepository();
     },
     duplicate: function () {
       var newEnv = xypic.Env();
@@ -7904,6 +8161,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           to.savedPosition[id] = from.savedPosition[id];
         }
       }
+      to.modifierRepository = from.modifierRepository.duplicate();
     }
   });
   
@@ -9818,6 +10076,30 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       dy = (c.d - c.u) / 2;
       env.c = env.c.shiftFrame(dx, dy);
       return xypic.Shape.TranslateShape(dx, dy, objectShape);
+    }
+  });
+  
+  AST.Modifier.Shape.ChangeColor.Augment({
+    preprocess: function (context) {
+    },
+    modifyShape: function (context, objectShape) {
+      return xypic.Shape.ChangeColorShape(this.colorName, objectShape);
+    }
+  });
+  
+  AST.Modifier.Shape.Alphabets.Augment({
+    preprocess: function (context) {
+      var modifier = context.env.modifierRepository.get(this.alphabets);
+      if (modifier !== undefined) {
+        return modifier.preprocess(context);
+      }
+    },
+    modifyShape: function (context, objectShape) {
+      var modifier = context.env.modifierRepository.get(this.alphabets);
+      if (modifier !== undefined) {
+        return modifier.modifyShape(context, objectShape);
+      }
+      return objectShape;
     }
   });
   
