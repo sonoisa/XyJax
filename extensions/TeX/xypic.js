@@ -914,6 +914,16 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // <modifier> ::= 'i'
+  AST.Modifier.Invisible = AST.Modifier.Subclass({
+    toString: function () { return "i"; }
+  });
+  
+  // <modifier> ::= 'h'
+  AST.Modifier.Hidden = AST.Modifier.Subclass({
+    toString: function () { return "h"; }
+  });
+  
   // <modifier> ::= <nonempty-direction>
   AST.Modifier.Direction = AST.Modifier.Subclass({
     Init: function (direction) {
@@ -1893,6 +1903,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     
     // <modifier> ::= '!' <vector>
     //            |   '[' <shape> ']'
+    //            |   'i'
+    //            |   'h'
     //            |   <add-op> <size>
     //            |   <nonemptyDirection>
     modifier: memo(function () {
@@ -1902,6 +1914,12 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         lit("[").andr(p.shape).andl(flit("]")).to(function (s) {
           return s;
+        }),
+        lit("i").to(function (v) {
+          return AST.Modifier.Invisible();
+        }),
+        lit("h").to(function (v) {
+          return AST.Modifier.Hidden();
         }),
         p.addOp().and(p.size).to(function (os) {
           return AST.Modifier.AddOp(os.head, os.tail);
@@ -10138,6 +10156,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var modifier = modifierRepository.get(this.alphabets);
       if (modifier !== undefined) {
         return modifier.preprocess(context, reversedProcessedModifiers);
+      } else {
+        // TODO 存在しないshape名が指定されたらエラーを発生させる。
       }
     },
     modifyShape: function (context, objectShape, restModifiers) {
@@ -10169,6 +10189,24 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     modifyShape: function (context, objectShape, restModifiers) {
       objectShape = this.proceedModifyShape(context, objectShape, this.modifiers);
+      return this.proceedModifyShape(context, objectShape, restModifiers);
+    }
+  });
+  
+  AST.Modifier.Invisible.Augment({
+    preprocess: function (context, reversedProcessedModifiers) {
+    },
+    modifyShape: function (context, objectShape, restModifiers) {
+      objectShape = this.proceedModifyShape(context, objectShape, restModifiers);
+      return xypic.Shape.none;
+    }
+  });
+  
+  AST.Modifier.Hidden.Augment({
+    preprocess: function (context, reversedProcessedModifiers) {
+    },
+    modifyShape: function (context, objectShape, restModifiers) {
+      // TODO implement hidden modifier
       return this.proceedModifyShape(context, objectShape, restModifiers);
     }
   });
