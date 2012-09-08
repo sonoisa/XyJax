@@ -126,6 +126,9 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
       }
       return l;
     },
+    prepend: function (element) {
+      return FP.List.Cons(element, this);
+    },
     append: function (element) {
       var result = FP.List.Cons(element, FP.List.empty);
       this.reverse().foreach(function (e) {
@@ -221,6 +224,9 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
       throw Error("cannot get element from an empty list.");
     },
     length: function () { return 0; },
+    prepend: function (element) {
+      return FP.List.Cons(element, FP.List.empty);
+    },
     append: function (element) {
       return FP.List.Cons(element, FP.List.empty);
     },
