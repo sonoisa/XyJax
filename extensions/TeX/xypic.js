@@ -611,6 +611,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   // <objectbox>
   AST.ObjectBox = MathJax.Object.Subclass({});
   // <objectbox> ::= '{' <text> '}'
+  // <objectbox> ::= <TeX box> '{' <text> '}'
   AST.ObjectBox.Text = AST.ObjectBox.Subclass({
     Init: function (math) {
       this.math = math;
@@ -1695,6 +1696,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //          | '\composite' '{' <composite_object> '}'
     //          | '\xybox' '{' <pos> <decor> '}'
     //          | <curve>
+    //          | <TeX box> '{' <text> '}'
     objectbox: memo(function () {
       return or(
         p.mathText,
@@ -1715,7 +1717,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         lit("\\xybox").and(flit("{")).andr(p.posDecor).andl(flit("}")).to(function (pd) {
           return AST.ObjectBox.Xybox(pd);
         }),
-        p.curve
+        p.curve,
+        regex(/^(\\[a-zA-Z][a-zA-Z0-9]+)/).andl(flit("{")).and(p.text).andl(flit("}")).to(function (bt) {
+          return p.toMath(bt.head + "{" + bt.tail + "}");
+        })
       );
     }),
     
@@ -1728,7 +1733,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     
     // <math-text> ::= '{' <text> '}'
     mathText: memo(function () {
-      return lit("{").andr(p.text).andl(felem("}")).to(p.toMath);
+      return lit("{").andr(p.text).andl(felem("}")).to(function (text) {
+        return p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+      });
     }),
     toMath: function (math) {
       var mml = TEX.Parse(math).mml();
