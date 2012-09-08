@@ -622,6 +622,26 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     toString: function () { return "{" + this.math.toString() + "}"; }
   });
   
+  // <objectbox> ::= '\txt' <width> <style> '{' <text> '}'
+  AST.ObjectBox.Txt = AST.ObjectBox.Subclass({
+    Init: function (width, textObject) {
+      this.width = width;
+      this.textObject = textObject;
+    },
+    toString: function () { return "\\txt" + this.width + "{" + this.textObject.toString() + "}"; }
+  });
+  AST.ObjectBox.Txt.Width = AST.ObjectBox.Subclass({
+  });
+  AST.ObjectBox.Txt.Width.Vector = AST.ObjectBox.Subclass({
+    Init: function (vector) {
+      this.vector = vector;
+    },
+    toString: function () { return this.vector.toString(); }
+  });
+  AST.ObjectBox.Txt.Width.Default = AST.ObjectBox.Subclass({
+    toString: function () { return ""; }
+  });
+  
   // <objectbox> ::= '\object' <object>
   AST.ObjectBox.WrapUpObject = AST.ObjectBox.Subclass({
     Init: function (object) {
@@ -1717,6 +1737,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         lit("\\xybox").and(flit("{")).andr(p.posDecor).andl(flit("}")).to(function (pd) {
           return AST.ObjectBox.Xybox(pd);
         }),
+        p.txt,
         p.curve,
         regex(/^(\\[a-zA-Z][a-zA-Z0-9]+)/).andl(flit("{")).and(p.text).andl(flit("}")).to(function (bt) {
           return p.toMath(bt.head + "{" + bt.tail + "}");
@@ -1769,6 +1790,46 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       }).to(function (x) {
         return x.head + x.tail
       });
+    }),
+    
+    txt: memo(function () {
+      return lit("\\txt").andr(p.txtWidth).and(fun(regex(/^(\\[a-zA-Z][a-zA-Z0-9]+)?/))).andl(flit("{")).and(p.text).andl(flit("}")).to(function (wst) {
+          var width = wst.head.head;
+          var style = wst.head.tail;
+          var text = wst.tail;
+          var math;
+          var lines = text.split("\\\\");
+          if (lines.length <= 1) {
+            math = "\\hbox{" + style + "{" + text + "}}";
+          } else {
+            math = "\\hbox{$\\begin{array}{c}\n";
+            for (var i = 0; i < lines.length; i++) {
+              math += style + "{\\hbox{" + lines[i].replace(/(^[\r\n\s]+)|([\r\n\s]+$)/g, "") + "}}";
+              if (i != lines.length - 1) {
+                math += "\\\\\n";
+              }
+            }
+            math += "\\end{array}$}";
+          }
+          return AST.ObjectBox.Txt(width, p.toMath(math));
+        });
+    }),
+    
+    // <txt_width> ::= '<' <dimen> '>'
+    //          | <empty>
+    txtWidth: memo(function () {
+      return or(
+        lit('<').andr(p.dimen).andl(flit('>')).to(
+          function (x) {
+            return AST.Vector.Abs(x, x);
+          }
+        ).to(function (v) {
+          return AST.ObjectBox.Txt.Width.Vector(v);
+        }),
+        success("default").to(function () {
+          return AST.ObjectBox.Txt.Width.Default();
+        })
+      );
     }),
     
     // <dir> ::= <variant> '{' <main> '}'
@@ -8816,6 +8877,28 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       context.appendShapeToFront(textShape);
       context.env.c = textShape.getBoundingBox();
       return textShape;
+    }
+  });
+  
+  AST.ObjectBox.Txt.Augment({
+    toDropShape: function (context) {
+      if (context.env.c === undefined) {
+        return xypic.Shape.none;
+      }
+      // TODO change width
+      var textShape = this.textObject.toDropShape(context);
+      return textShape;
+    }
+  });
+  AST.ObjectBox.Txt.Width.Vector.Augment({
+    width: function (context) {
+      return this.vector.xy().x;
+    }
+  });
+  AST.ObjectBox.Txt.Width.Vector.Augment({
+    width: function (context) {
+      var c = context.env.c;
+      return c.r + c.l;
     }
   });
   
