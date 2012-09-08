@@ -621,6 +621,31 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     toString: function () { return "{" + this.math.toString() + "}"; }
   });
   
+  // <objectbox> ::= '\object' <object>
+  AST.ObjectBox.WrapUpObject = AST.ObjectBox.Subclass({
+    Init: function (object) {
+      this.object = object;
+    },
+    toString: function () { return "\\object" + this.object.toString(); }
+  });
+  
+  // <objectbox> ::= '\composite' '{' <composite_object> '}'
+  // <composite_object> ::= <object> ( '*' <object> )*
+  AST.ObjectBox.CompositeObject = AST.ObjectBox.Subclass({
+    Init: function (objects) {
+      this.objects = objects;
+    },
+    toString: function () { return "\\composite{" + this.objects.mkString(" * ") + "}"; }
+  });
+  
+  // <objectbox> ::= '\xybox' '{' <pos> <decor> '}'
+  AST.ObjectBox.Xybox = AST.ObjectBox.Subclass({
+    Init: function (posDecor) {
+      this.posDecor = posDecor;
+    },
+    toString: function () { return "\\xybox{" + this.posDecor.toString() + "}"; }
+  });
+  
   // <objectbox> ::= '\cir' <radius> '{' <cir> '}'
   // <cir_radius> ::= <vector>
   //          | <empty>
@@ -1666,6 +1691,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //          | '\dir' <dir>
     //          | '\cir' <cir_radius> '{' <cir> '}'
     //          | '\frm' <frame_radius> '{' <frame_main> '}'
+    //          | '\object' <object>
+    //          | '\composite' '{' <composite_object> '}'
+    //          | '\xybox' '{' <pos> <decor> '}'
     //          | <curve>
     objectbox: memo(function () {
       return or(
@@ -1678,8 +1706,24 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         lit("\\frm").andr(p.frameRadius).andl(flit("{")).and(p.frameMain).andl(flit("}")).to(function (rm) {
           return AST.ObjectBox.Frame(rm.head, rm.tail);
         }),
+        lit("\\object").andr(p.object).to(function (o) {
+          return AST.ObjectBox.WrapUpObject(o);
+        }),
+        lit("\\composite").and(flit("{")).andr(p.compositeObject).andl(flit("}")).to(function (os) {
+          return AST.ObjectBox.CompositeObject(os);
+        }),
+        lit("\\xybox").and(flit("{")).andr(p.posDecor).andl(flit("}")).to(function (pd) {
+          return AST.ObjectBox.Xybox(pd);
+        }),
         p.curve
       );
+    }),
+    
+    // <composite_object> ::= <object> ( '*' <object> )*
+    compositeObject: memo(function () {
+      return p.object().and(fun(rep(lit("*").andr(p.object)))).to(function (oos) {
+        return oos.tail.prepend(oos.head);
+      });
     }),
     
     // <math-text> ::= '{' <text> '}'
@@ -8639,16 +8683,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return dropShape.getBoundingBox();
     }
   });
- 
-  AST.ObjectBox.Text.Augment({
-    toDropShape: function (context) {
-      var textShape = xypic.Shape.TextShape(context.env.c, this.math, svgForTestLayout);
-      context.appendShapeToFront(textShape);
-      context.env.c = textShape.getBoundingBox();
-      return textShape;
-    },
+  
+  AST.ObjectBox.Augment({
     toConnectShape: function (context, object) {
       var env = context.env;
+      if (env.c === undefined || env.p === undefined) {
+        env.angle = 0;
+        env.mostRecentLine = xypic.MostRecentLine.none;
+        return xypic.Shape.none;
+      }
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
       if (s.x !== e.x || s.y !== e.y) {
@@ -8700,6 +8743,72 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.angle = 0;
       env.mostRecentLine = xypic.MostRecentLine.none;
       return xypic.Shape.none;
+    }
+  });
+  
+  AST.ObjectBox.WrapUpObject.Augment({
+    toDropShape: function (context) {
+      return this.object.toDropShape(context);
+    },
+    toConnectShape: function (context, object) {
+      return this.object.toConnectShape(context, object);
+    }
+  });
+  
+  AST.ObjectBox.CompositeObject.Augment({
+    toDropShape: function (context) {
+      var env = context.env;
+      var origC = env.c;
+      if (origC === undefined) {
+        return xypic.Shape.none;
+      }
+      var c = origC;
+      var tmpEnv = env.duplicate();
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
+      this.objects.foreach(function (obj) {
+        tmpEnv.c = origC;
+        obj.toDropShape(subcontext);
+        c = xypic.Frame.combineRect(c, tmpEnv.c);
+      });
+      env.c = c;
+      var compositeShape = subcontext.shape;
+      context.appendShapeToFront(compositeShape);
+      return compositeShape;
+    }
+  });
+  
+  AST.ObjectBox.Xybox.Augment({
+    toDropShape: function (context) {
+      var env = context.env;
+      var c = env.c;
+      if (c === undefined) {
+        return xypic.Shape.none;
+      }
+      var subenv = xypic.Env();
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, subenv);
+      this.posDecor.toShape(subcontext);
+      var subshape = subcontext.shape;
+      var bbox = subshape.getBoundingBox();
+      if (bbox === undefined) {
+        return xypic.Shape.none;
+      }
+      var l = Math.max(0, bbox.l - bbox.x);
+      var r = Math.max(0, bbox.r + bbox.x);
+      var u = Math.max(0, bbox.u + bbox.y);
+      var d = Math.max(0, bbox.d - bbox.y);
+      env.c = xypic.Frame.Rect(c.x, c.y, { l:l, r:r, u:u, d:d });
+      var objectShape = xypic.Shape.TranslateShape(c.x, c.y, subshape);
+      context.appendShapeToFront(objectShape);
+      return objectShape;
+    }
+  });
+  
+  AST.ObjectBox.Text.Augment({
+    toDropShape: function (context) {
+      var textShape = xypic.Shape.TextShape(context.env.c, this.math, svgForTestLayout);
+      context.appendShapeToFront(textShape);
+      context.env.c = textShape.getBoundingBox();
+      return textShape;
     }
   });
   
