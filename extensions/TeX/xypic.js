@@ -6435,24 +6435,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   }, {
     sign: function (x) { return x>0? 1 : (x===0? 0 : -1); },
-    minT: function () {
-      var ts = [];
-      for (var i = 0; i < arguments.length; i++) {
-        var t = arguments[i];
-        if (t >= 0 && t <= 1) {
-          ts.push(t);
-        }
-      }
-      if (ts.length > 0) {
-        return Math.min.apply(Math, ts);
-      } else {
-        return undefined;
-      }
-    },
-    minSolutionOfCubicEq: function (a3, a2, a1, a0) {
+    solutionsOfCubicEq: function (a3, a2, a1, a0) {
       // find minimum solution t in [0, 1]
       if (a3 === 0) {
-        return xypic.Curve.minSolutionOfQuadEq(a2, a1, a0);
+        return xypic.Curve.solutionsOfQuadEq(a2, a1, a0);
       }
       var b2 = a2/3/a3, b1 = a1/a3, b0 = a0/a3;
       var p = b2*b2-b1/3, q = -b0/2+b1*b2/2-b2*b2*b2;
@@ -6460,40 +6446,50 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (d === 0) {
         var s = Math.pow(q, 1/3);
         var t0 = 2*s-b2, t1 = -s-b2;
-        return xypic.Curve.minT(t0, t1);
+        return xypic.Curve.filterByIn0to1([t0, t1]);
       } else if (d > 0) {
         var u = q+xypic.Curve.sign(q)*Math.sqrt(d);
         var r = xypic.Curve.sign(u)*Math.pow(Math.abs(u), 1/3);
         var s = p/r;
         var t = r+s-b2;
-        return xypic.Curve.minT(t);
+        return xypic.Curve.filterByIn0to1([t]);
       } else {
         var r = 2*Math.sqrt(p);
         var s = Math.acos(2*q/p/r);
         var t0 = r*Math.cos(s/3)-b2;
         var t1 = r*Math.cos((s+2*Math.PI)/3)-b2;
         var t2 = r*Math.cos((s+4*Math.PI)/3)-b2;
-        return xypic.Curve.minT(t0, t1, t2);
+        return xypic.Curve.filterByIn0to1([t0, t1, t2]);
       }
     },
-    minSolutionOfQuadEq: function (a2, a1, a0) {
+    solutionsOfQuadEq: function (a2, a1, a0) {
       // find minimum solution t in [0, 1]
       if (a2 === 0) {
         if (a1 === 0) {
-          return (a0 === 0? 0 : undefined);
+          return (a0 === 0? 0 : []);
         }
-        return  xypic.Curve.minT(-a0/a1);
+        return xypic.Curve.filterByIn0to1([-a0 / a1]);
       } else {
-        var d = a1*a1-4*a0*a2;
+        var d = a1 * a1 - 4 * a0 * a2;
         if (d >= 0) {
           var s = Math.sqrt(d);
-          var tp = (-a1+s)/2/a2;
-          var tm = (-a1-s)/2/a2;
-          return xypic.Curve.minT(tp, tm);
+          var tp = (-a1 + s) / 2 / a2;
+          var tm = (-a1 - s) / 2 / a2;
+          return xypic.Curve.filterByIn0to1([tp, tm]);
         } else {
-          return undefined;
+          return [];
         }
       }
+    },
+    filterByIn0to1: function (ts) {
+      var filterdTs = [];
+      for (var i = 0; i < ts.length; i++) {
+        var t = ts[i];
+        if (t >= 0 && t <= 1) {
+          filterdTs.push(t);
+        }
+      }
+      return filterdTs;
     }
   });
   
@@ -6616,46 +6612,33 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       ]
     },
     shaveStart: function (frame) {
-      var edgeCPs;
-      edgeCPs = this.edgeControlPoints(frame, this.cp0, this.cp1, this.cp2);
-      if (edgeCPs === undefined) {
-        return undefined;
+      if (frame.isPoint()) {
+        return this; // trivial
       }
-      return xypic.Curve.QuadBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2]);
+      
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.min.apply(Math, ts);
+      return this.divide(t)[1];
     },
     shaveEnd: function (frame) {
-      var edgeCPs;
-      edgeCPs = this.edgeControlPoints(frame, this.cp2, this.cp1, this.cp0);
-      if (edgeCPs === undefined) {
-        return undefined;
-      }
-      return xypic.Curve.QuadBezier(edgeCPs[2], edgeCPs[1], edgeCPs[0]);
-    },
-    edgeControlPoints: function (frame, cp0, cp1, cp2) {
       if (frame.isPoint()) {
-        return [cp0, cp1 ,cp2];
+        return this; // trivial
       }
       
-      var t;
-      var roundEp = xypic.Util.roundEpsilon;
-      
-      var x0 = cp0.x;
-      var x1 = cp1.x;
-      var x2 = cp2.x;
-      
-      var a0x = roundEp(x0);
-      var a1x = roundEp(2*(x1 - x0));
-      var a2x = roundEp(x2 - 2*x1 + x0);
-      var px = function(t) { return a0x + t*a1x + t*t*a2x; }
-      
-      var y0 = cp0.y;
-      var y1 = cp1.y;
-      var y2 = cp2.y;
-      
-      var a0y = roundEp(y0);
-      var a1y = roundEp(2*(y1 - y0));
-      var a2y = roundEp(y2 - 2*y1 + y0);
-      var py = function(t) { return a0y + t*a1y + t*t*a2y; }
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.max.apply(Math, ts);
+      return this.divide(t)[0];
+    },
+    tOfIntersections: function (frame) {
+      if (frame.isPoint()) {
+        return []; // CAUTION: Point does not intersect with any curves.
+      }
       
       if (frame.isRect()) {
         // find starting edge point
@@ -6664,28 +6647,49 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var uy = frame.y + frame.u;
         var dy = frame.y - frame.d;
         
+        var roundEp = xypic.Util.roundEpsilon;
+        
+        var x0 = this.cp0.x;
+        var x1 = this.cp1.x;
+        var x2 = this.cp2.x;
+        
+        var a0x = roundEp(x0);
+        var a1x = roundEp(2*(x1 - x0));
+        var a2x = roundEp(x2 - 2*x1 + x0);
+        var px = function(t) { return a0x + t*a1x + t*t*a2x; }
+        
+        var y0 = this.cp0.y;
+        var y1 = this.cp1.y;
+        var y2 = this.cp2.y;
+        
+        var a0y = roundEp(y0);
+        var a1y = roundEp(2*(y1 - y0));
+        var a2y = roundEp(y2 - 2*y1 + y0);
+        var py = function(t) { return a0y + t*a1y + t*t*a2y; }
+        
         var ts = [];
-        if (x0 <= rx && (x1 >= rx || x2 >= rx)) {
-          t = xypic.Curve.minSolutionOfQuadEq(a2x, a1x, a0x-rx);
-          if (t !== undefined) { ts.push(t) }
+        
+        var tsCandidate;
+        tsCandidate = xypic.Curve.solutionsOfQuadEq(a2x, a1x, a0x - rx);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfQuadEq(a2x, a1x, a0x - lx));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var y = py(t);
+          if (y >= dy && y <= uy) {
+            ts.push(t);
+          }
         }
-        if (x0 >= lx && (x2 <= lx || x1 <= lx)) {
-          t = xypic.Curve.minSolutionOfQuadEq(a2x, a1x, a0x-lx);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (y0 <= uy && (y1 >= uy || y2 >= uy)) {
-          t = xypic.Curve.minSolutionOfQuadEq(a2y, a1y, a0y-uy);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (y0 >= dy && (y2 <= dy || y1 <= dy)) {
-          t = xypic.Curve.minSolutionOfQuadEq(a2y, a1y, a0y-dy);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (ts.length === 0) {
-          return undefined;
+        tsCandidate = xypic.Curve.solutionsOfQuadEq(a2y, a1y, a0y - uy);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfQuadEq(a2y, a1y, a0y - dy));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var x = px(t);
+          if (x >= lx && x <= rx) {
+            ts.push(t);
+          }
         }
         
-        t = Math.min.apply(Math, ts);
+        return ts;
       } else if (frame.isCircle()) {
         var pi = Math.PI;
         var x = frame.x;
@@ -6705,7 +6709,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
         var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
         
-        var bezier = xypic.CurveSegment.QuadBezier(xypic.Curve.QuadBezier(cp0, cp1, cp2), 0, 1);
+        var bezier = xypic.CurveSegment.QuadBezier(this, 0, 1);
         
         var intersec = [];
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, bezier));
@@ -6713,21 +6717,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, bezier));
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, bezier));
         
-        if (intersec.length === 0) {
-          return undefined;
-        } else {
-          t = (intersec[0][1].min + intersec[0][1].max) / 2;
-          for (var i = 1; i < intersec.length; i++) { 
-            var ttmp = (intersec[i][1].min + intersec[i][1].max) / 2;
-            if (t > ttmp) { t = ttmp; }
-          }
+        var ts = [];
+        for (var i = 0; i < intersec.length; i++) { 
+          var t = (intersec[i][1].min + intersec[i][1].max) / 2;
+          ts.push(t);
         }
+        return ts;
       }
-      var tx = px(t);
-      var ty = py(t);
-      cp0 = xypic.Frame.Point(tx, ty);
-      cp1 = xypic.Frame.Point(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
-      return [cp0, cp1 ,cp2];
     },
     countOfSegments: function () { return 1; },
     drawPrimitive: function (svg, dasharray) {
@@ -6893,50 +6889,33 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       ]
     },
     shaveStart: function (frame) {
-      var edgeCPs;
-      edgeCPs = this.edgeControlPoints(frame, this.cp0, this.cp1, this.cp2, this.cp3);
-      if (edgeCPs === undefined) {
-        return undefined;
+      if (frame.isPoint()) {
+        return this; // trivial
       }
-      return xypic.Curve.CubicBezier(edgeCPs[0], edgeCPs[1], edgeCPs[2], edgeCPs[3]);
+      
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.min.apply(Math, ts);
+      return this.divide(t)[1];
     },
     shaveEnd: function (frame) {
-      var edgeCPs;
-      edgeCPs = this.edgeControlPoints(frame, this.cp3, this.cp2, this.cp1, this.cp0);
-      if (edgeCPs === undefined) {
-        return undefined;
-      }
-      return xypic.Curve.CubicBezier(edgeCPs[3], edgeCPs[2], edgeCPs[1], edgeCPs[0]);
-    },
-    edgeControlPoints: function (frame, cp0, cp1, cp2, cp3) {
       if (frame.isPoint()) {
-        return [cp0, cp1 ,cp2, cp3];
+        return this; // trivial
       }
       
-      var t;
-      var roundEp = xypic.Util.roundEpsilon;
-      
-      var x0 = cp0.x;
-      var x1 = cp1.x;
-      var x2 = cp2.x;
-      var x3 = cp3.x;
-      
-      var y0 = cp0.y;
-      var y1 = cp1.y;
-      var y2 = cp2.y;
-      var y3 = cp3.y;
-      
-      var a0x = roundEp(x0);
-      var a1x = roundEp(3*(x1 - x0));
-      var a2x = roundEp(3*(x2 - 2*x1 + x0));
-      var a3x = roundEp(x3 - 3*x2 + 3*x1 - x0);
-      var px = function(t) { return a0x + t*a1x + t*t*a2x + t*t*t*a3x }
-      
-      var a0y = roundEp(y0);
-      var a1y = roundEp(3*(y1 - y0));
-      var a2y = roundEp(3*(y2 - 2*y1 + y0));
-      var a3y = roundEp(y3 - 3*y2 + 3*y1 - y0);
-      var py = function(t) { return a0y + t*a1y + t*t*a2y + t*t*t*a3y }
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.max.apply(Math, ts);
+      return this.divide(t)[0];
+    },
+    tOfIntersections: function (frame) {
+      if (frame.isPoint()) {
+        return []; // CAUTION: Point does not intersect with any curves.
+      }
       
       if (frame.isRect()) {
         // find starting edge point
@@ -6945,28 +6924,52 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var uy = frame.y + frame.u;
         var dy = frame.y - frame.d;
         
+        var roundEp = xypic.Util.roundEpsilon;
+        
+        var x0 = this.cp0.x;
+        var x1 = this.cp1.x;
+        var x2 = this.cp2.x;
+        var x3 = this.cp3.x;
+        
+        var y0 = this.cp0.y;
+        var y1 = this.cp1.y;
+        var y2 = this.cp2.y;
+        var y3 = this.cp3.y;
+        
+        var a0x = roundEp(x0);
+        var a1x = roundEp(3*(x1 - x0));
+        var a2x = roundEp(3*(x2 - 2*x1 + x0));
+        var a3x = roundEp(x3 - 3*x2 + 3*x1 - x0);
+        var px = function(t) { return a0x + t*a1x + t*t*a2x + t*t*t*a3x }
+        
+        var a0y = roundEp(y0);
+        var a1y = roundEp(3*(y1 - y0));
+        var a2y = roundEp(3*(y2 - 2*y1 + y0));
+        var a3y = roundEp(y3 - 3*y2 + 3*y1 - y0);
+        var py = function(t) { return a0y + t*a1y + t*t*a2y + t*t*t*a3y }
+        
         var ts = [];
-        if (x0 <= rx && (x3 >= rx || x1 >= rx || x2 >= rx)) {
-          t = xypic.Curve.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-rx);
-          if (t !== undefined) { ts.push(t) }
+        var tsCandidate;
+        tsCandidate = xypic.Curve.solutionsOfCubicEq(a3x, a2x, a1x, a0x-rx);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfCubicEq(a3x, a2x, a1x, a0x-lx));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var y = py(t);
+          if (y >= dy && y <= uy) {
+            ts.push(t);
+          }
         }
-        if (x0 >= lx && (x3 <= lx || x2 <= lx || x1 <= lx)) {
-          t = xypic.Curve.minSolutionOfCubicEq(a3x, a2x, a1x, a0x-lx);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (y0 <= uy && (y3 >= uy || y1 >= uy || y2 >= uy)) {
-          t = xypic.Curve.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-uy);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (y0 >= dy && (y3 <= dy || y2 <= dy || y1 <= dy)) {
-          t = xypic.Curve.minSolutionOfCubicEq(a3y, a2y, a1y, a0y-dy);
-          if (t !== undefined) { ts.push(t) }
-        }
-        if (ts.length === 0) {
-          return undefined;
+        tsCandidate = xypic.Curve.solutionsOfCubicEq(a3y, a2y, a1y, a0y-uy);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfCubicEq(a3y, a2y, a1y, a0y-dy));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var x = px(t);
+          if (x >= lx && x <= rx) {
+            ts.push(t);
+          }
         }
         
-        t = Math.min.apply(Math, ts);
+        return ts;
       } else if (frame.isCircle()) {
         var pi = Math.PI;
         var x = frame.x;
@@ -6986,7 +6989,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
         var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
         
-        var bezier = xypic.CurveSegment.CubicBezier(xypic.Curve.CubicBezier(cp0, cp1, cp2, cp3), 0, 1);
+        var bezier = xypic.CurveSegment.CubicBezier(this, 0, 1);
         
         var intersec = [];
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, bezier));
@@ -6994,26 +6997,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, bezier));
         intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, bezier));
         
-        if (intersec.length === 0) {
-          return undefined;
-        } else {
-          t = (intersec[0][1].min + intersec[0][1].max)/2;
-          for (var i = 1; i < intersec.length; i++) { 
-            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
-            if (t > ttmp) { t = ttmp; }
-          }
+        var ts = [];
+        for (var i = 0; i < intersec.length; i++) { 
+          var t = (intersec[i][1].min + intersec[i][1].max) / 2;
+          ts.push(t);
         }
+        return ts;
       }
-      
-      var tx = px(t);
-      var ty = py(t);
-      cp0 = xypic.Frame.Point(tx, ty);
-      cp1 = xypic.Frame.Point(
-        x1+2*t*(x2-x1)+t*t*(x3-2*x2+x1),
-        y1+2*t*(y2-y1)+t*t*(y3-2*y2+y1)
-      );
-      cp2 = xypic.Frame.Point(x2+t*(x3-x2), y2+t*(y3-y2));
-      return [cp0, cp1 ,cp2, cp3];
     },
     countOfSegments: function () { return 1; },
     drawPrimitive: function (svg, dasharray) {
@@ -7039,10 +7029,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         function (t, succ, fail) {
           return fail;
         } : function (t, succ, fail) {
-          var tn = t*n;
+          var tn = t * n;
           var i = Math.floor(tn);
           if (i < 0) { i = 0; }
-          if (i >= n) { i = n-1; }
+          if (i >= n) { i = n - 1; }
           var s = tn - i;
           var cb = cbs[i];
           return succ(cb, s);
@@ -7066,7 +7056,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     velocity: function (t) {
       var n = this.cbs.length;
-      return this.delegate(t, function (cb, s) { return n*cb.velocity(s) }, 0);
+      return this.delegate(t, function (cb, s) { return n * cb.velocity(s) }, 0);
     },
     boundingBox: function (vshift) {
       if (this.cbs.length == 0) {
@@ -7080,6 +7070,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return bbox;
     },
     shaveStart: function (frame) {
+      if (frame.isPoint()) {
+        return this; // trivial
+      }
+      
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.min.apply(Math, ts);
+      return this.divide(t)[1];
+      
+/*
       var shaved = [];
       var i = 0, l = this.cbs.length;
       while (i < l) {
@@ -7097,8 +7099,20 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       }
       return xypic.Curve.CubicBeziers(shaved);
+*/
     },
     shaveEnd: function (frame) {
+      if (frame.isPoint()) {
+        return this; // trivial
+      }
+      
+      var ts = this.tOfIntersections(frame);
+      if (ts.length == 0) {
+        return undefined; // No solution.
+      }
+      var t = Math.max.apply(Math, ts);
+      return this.divide(t)[0];
+/*
       var reversedShaved = [];
       var l = this.cbs.length;
       var i = l - 1;
@@ -7116,6 +7130,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       }
       return xypic.Curve.CubicBeziers(reversedShaved.reverse());
+*/
+    },
+    tOfIntersections: function (frame) {
+      var ts = [];
+      var i = 0, n = this.cbs.length;
+      for (i = 0; i < n; i++) {
+        var cb = this.cbs[i];
+        unnormalizedTs = cb.tOfIntersections(frame);
+        for (j = 0; j < unnormalizedTs.length; j++) {
+          ts.push((unnormalizedTs[j] + i) / n);
+        }
+      }
+      return ts;
     },
     divide: function (t) {
       if (t < 0 || t > 1) {
@@ -7127,12 +7154,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       
       var n = this.cbs.length;
-      var tn = t*n;
+      var tn = t * n;
       var i = Math.floor(tn);
+      if (i === n) {
+        i = n - 1;
+      }
       var s = tn - i;
-      var divS = this.cbs.slice(0,i);
-      var divE = this.cbs.slice(i+1);
-      var cb = cbs[i];
+      var divS = this.cbs.slice(0, i);
+      var divE = this.cbs.slice(i + 1);
+      var cb = this.cbs[i];
       var divB = cb.divide(s);
       divS.push(divB[0]);
       divE.unshift(divB[1]);
