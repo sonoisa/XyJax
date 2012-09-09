@@ -2476,7 +2476,6 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         var result = FP.Parsers.parse(p.xy(), input);
         this.i = result.next.offset;
       } catch (e) {
-        console.log(e.toString());
         throw e;
       }
       
@@ -3587,7 +3586,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.color = color;
       this.shape = shape;
       memoize(this, "getBoundingBox");
-      console.log("color:" + this.color);
     },
     draw: function (svg) {
       var g = svg.createChangeColorGroup(this.color);
@@ -6334,7 +6332,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             var conBBox = objectForConnect.boundingBox(context);
             if (conBBox == undefined) {
               env.angle = 0;
-              env.mostRecentLine = xypic.MostRecentLine.none;
+              env.lastCurve = xypic.LastCurve.none;
               return xypic.Shape.none;
             }
             
@@ -6361,7 +6359,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             var n = Math.floor(len / compositeLen);
             if (n == 0) {
               env.angle = 0;
-              env.mostRecentLine = xypic.MostRecentLine.none;
+              env.lastCurve = xypic.LastCurve.none;
               return xypic.Shape.none;
             }
             
@@ -6400,7 +6398,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var objectBBox = object.boundingBox(context);
         if (objectBBox == undefined) {
           env.angle = 0;
-          env.mostRecentLine = xypic.MostRecentLine.none;
+          env.lastCurve = xypic.LastCurve.none;
           return xypic.Shape.none;
         }
         
@@ -6414,7 +6412,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var n = Math.floor(len / objectLen);
         if (n == 0) {
           env.angle = 0;
-          env.mostRecentLine = xypic.MostRecentLine.none;
+          env.lastCurve = xypic.LastCurve.none;
           return xypic.Shape.none;
         }
         
@@ -7895,19 +7893,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   
-  xypic.MostRecentLine = MathJax.Object.Subclass({});
+  xypic.LastCurve = MathJax.Object.Subclass({});
   
-  xypic.MostRecentLine.None = xypic.MostRecentLine.Subclass({
+  xypic.LastCurve.None = xypic.LastCurve.Subclass({
     Init: function () {}, 
     isDefined: false,
     segments: function () { return []; }
   });
   
-  xypic.MostRecentLine.Augment({}, {
-    none: xypic.MostRecentLine.None()
+  xypic.LastCurve.Augment({}, {
+    none: xypic.LastCurve.None()
   });
   
-  xypic.MostRecentLine.Line = xypic.MostRecentLine.Subclass({
+  xypic.LastCurve.Line = xypic.LastCurve.Subclass({
     Init: function (start, end, p, c) {
       this.start = start;
       this.end = end;
@@ -7961,7 +7959,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.MostRecentLine.QuadBezier = xypic.MostRecentLine.Subclass({
+  xypic.LastCurve.QuadBezier = xypic.LastCurve.Subclass({
     Init: function (origBezier, shavePBezier, shavePCBezier) {
       this.origBezier = origBezier;
       this.shavePBezier = shavePBezier;
@@ -8012,7 +8010,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.MostRecentLine.CubicBezier = xypic.MostRecentLine.Subclass({
+  xypic.LastCurve.CubicBezier = xypic.LastCurve.Subclass({
     Init: function (origBezier, shavePBezier, shavePCBezier) {
       this.origBezier = origBezier;
       this.shavePBezier = shavePBezier;
@@ -8066,7 +8064,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  xypic.MostRecentLine.CubicBSpline = xypic.MostRecentLine.Subclass({
+  xypic.LastCurve.CubicBSpline = xypic.LastCurve.Subclass({
     Init: function (s, e, origBeziers, shavePBeziers, shavePCBeziers) {
       this.s = s;
       this.e = e;
@@ -8200,7 +8198,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.stackFrames = FP.List.empty;
       this.stack = FP.List.empty;
       this.angle = 0; // radian
-      this.mostRecentLine = xypic.MostRecentLine.none;
+      this.lastCurve = xypic.LastCurve.none;
       this.p = this.c = xypic.Env.originPosition;
       this.shouldCapturePos = false;
       this.capturedPositions = FP.List.empty;
@@ -8311,7 +8309,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           savedPositionDesc += id.toString()+":"+this.savedPosition[id];
         }
       }
-      return "Env\n  p:"+this.p+"\n  c:"+this.c+"\n  angle:"+this.angle+"\n  mostRecentLine:"+this.mostRecentLine+"\n  savedPosition:{"+savedPositionDesc+"}\n  origin:{x:"+this.origin.x+", y:"+this.origin.y+"}\n  xBase:{x:"+this.xBase.x+", y:"+this.xBase.y+"}\n  yBase:{x:"+this.yBase.x+", y:"+this.yBase.y+"}\n  stackFrames:"+this.stackFrames+"\n  stack:"+this.stack+"\n  shouldCapturePos:"+this.shouldCapturePos+"\n  capturedPositions:"+this.capturedPositions;
+      return "Env\n  p:"+this.p+"\n  c:"+this.c+"\n  angle:"+this.angle+"\n  lastCurve:"+this.lastCurve+"\n  savedPosition:{"+savedPositionDesc+"}\n  origin:{x:"+this.origin.x+", y:"+this.origin.y+"}\n  xBase:{x:"+this.xBase.x+", y:"+this.xBase.y+"}\n  yBase:{x:"+this.yBase.x+", y:"+this.yBase.y+"}\n  stackFrames:"+this.stackFrames+"\n  stack:"+this.stack+"\n  shouldCapturePos:"+this.shouldCapturePos+"\n  capturedPositions:"+this.capturedPositions;
     }
   }, {
     originPosition: xypic.Frame.Point(0, 0),
@@ -8429,7 +8427,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Pos.Place.Augment({
     toShape: function (context) {
       var env = context.env;
-      if (env.mostRecentLine.isDefined) {
+      if (env.lastCurve.isDefined) {
         var place = this.place;
         var start, end, f, dimen;
         var shouldShaveP = (place.shaveP > 0);
@@ -8457,7 +8455,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         dimen = HTMLCSS.length2em(place.slide.dimen.getOrElse("0"));
         var jot = AST.xypic.jot;
         var slideEm = dimen + (jotP - jotC) * jot;
-        var posAngle = env.mostRecentLine.posAngle(shouldShaveP, shouldShaveC, f, slideEm);
+        var posAngle = env.lastCurve.posAngle(shouldShaveP, shouldShaveC, f, slideEm);
         env.c = posAngle.pos;
         env.angle = posAngle.angle;
       }
@@ -8530,26 +8528,26 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Place.Intercept.Augment({
     value: function (context) {
       var env = context.env;
-      if (!env.mostRecentLine.isDefined) {
+      if (!env.lastCurve.isDefined) {
         return undefined;
       }
       
       var tmpEnv = env.duplicate();
       tmpEnv.angle = 0;
-      tmpEnv.mostRecentLine = xypic.MostRecentLine.none;
+      tmpEnv.lastCurve = xypic.LastCurve.none;
       tmpEnv.p = tmpEnv.c = xypic.Env.originPosition;
       var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       
       var box = this.pos.toShape(tmpContext);
       context.appendShapeToFront(tmpContext.shape);
       
-      if (!tmpEnv.mostRecentLine.isDefined) {
-        tmpEnv.mostRecentLine = xypic.MostRecentLine.Line(tmpEnv.p, tmpEnv.c, tmpEnv.p, tmpEnv.c);
+      if (!tmpEnv.lastCurve.isDefined) {
+        tmpEnv.lastCurve = xypic.LastCurve.Line(tmpEnv.p, tmpEnv.c, tmpEnv.p, tmpEnv.c);
       }
       
       var intersec = [];
-      var thisSegs = env.mostRecentLine.segments();
-      var thatSegs = tmpEnv.mostRecentLine.segments();
+      var thisSegs = env.lastCurve.segments();
+      var thatSegs = tmpEnv.lastCurve.segments();
       
       for (var i = 0; i < thisSegs.length; i++) {
         for (var j = 0; j < thatSegs.length; j++) {
@@ -8562,8 +8560,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         console.log("perhaps no curve intersection.");
         
         // Levenberg-Marqardt Method
-        var line0 = env.mostRecentLine;
-        var line1 = tmpEnv.mostRecentLine;
+        var line0 = env.lastCurve;
+        var line1 = tmpEnv.lastCurve;
         
         var n = 100; // maxIterations
         var goalAccuracy = 1e-5;
@@ -8757,7 +8755,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var env = context.env;
       if (env.c === undefined || env.p === undefined) {
         env.angle = 0;
-        env.mostRecentLine = xypic.MostRecentLine.none;
+        env.lastCurve = xypic.LastCurve.none;
         return xypic.Shape.none;
       }
       var s = env.p.edgePoint(env.c.x, env.c.y);
@@ -8766,7 +8764,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var objectBBox = object.boundingBox(context);
         if (objectBBox == undefined) {
           env.angle = 0;
-          env.mostRecentLine = xypic.MostRecentLine.none;
+          env.lastCurve = xypic.LastCurve.none;
           return xypic.Shape.none;
         }
         
@@ -8782,7 +8780,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var n = Math.floor(len / objectLen);
         if (n == 0) {
           env.angle = 0;
-          env.mostRecentLine = xypic.MostRecentLine.none;
+          env.lastCurve = xypic.LastCurve.none;
           return xypic.Shape.none;
         }
         
@@ -8802,14 +8800,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
         env.angle = angle;
         env.c = c;
-        env.mostRecentLine = xypic.MostRecentLine.Line(s, e, env.p, env.c);
+        env.lastCurve = xypic.LastCurve.Line(s, e, env.p, env.c);
         
         var connectionShape = tmpContext.shape;
         context.appendShapeToFront(connectionShape);
         return connectionShape;
       }
       env.angle = 0;
-      env.mostRecentLine = xypic.MostRecentLine.none;
+      env.lastCurve = xypic.LastCurve.none;
       return xypic.Shape.none;
     }
   });
@@ -9667,7 +9665,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             var arrowBBox = object.boundingBox(context);
             if (arrowBBox == undefined) {
               env.angle = 0;
-              env.mostRecentLine = xypic.MostRecentLine.none;
+              env.lastCurve = xypic.LastCurve.none;
               return xypic.Shape.none;
             }
             
@@ -9680,7 +9678,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             var n = Math.floor(len / arrowLen);
             if (n == 0) {
               env.angle = 0;
-              env.mostRecentLine = xypic.MostRecentLine.none;
+              env.lastCurve = xypic.LastCurve.none;
               return xypic.Shape.none;
             }
             
@@ -9699,7 +9697,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             }
             env.c = c;
             env.angle = angle;
-            env.mostRecentLine = xypic.MostRecentLine.Line(s, e, env.p, env.c);
+            env.lastCurve = xypic.LastCurve.Line(s, e, env.p, env.c);
             shape = tmpContext.shape;
             context.appendShapeToFront(shape);
             
@@ -9707,12 +9705,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
         
         env.angle = angle;
-        env.mostRecentLine = xypic.MostRecentLine.Line(s, e, env.p, env.c);
+        env.lastCurve = xypic.LastCurve.Line(s, e, env.p, env.c);
         context.appendShapeToFront(shape);
         return shape;
       } else {
         env.angle = 0;
-        env.mostRecentLine = xypic.MostRecentLine.none;
+        env.lastCurve = xypic.LastCurve.none;
         return xypic.Shape.none;
       }
     }
@@ -9757,7 +9755,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       switch (controlPoints.length) {
         case 0:
           if (s.x === e.x && s.y === e.y) {
-            env.mostRecentLine = xypic.MostRecentLine.none;
+            env.lastCurve = xypic.LastCurve.none;
             env.angle = 0;
             return xypic.Shape.none;
           }
@@ -9776,11 +9774,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           }
           if (shavePCBezier === undefined) {
               env.angle = 0;
-              env.mostRecentLine = xypic.MostRecentLine.none;
+              env.lastCurve = xypic.LastCurve.none;
               return xypic.Shape.none;
           }
           shape = shavePCBezier.toShape(context, objectForDrop, objectForConnect);
-          env.mostRecentLine = xypic.MostRecentLine.QuadBezier(origBezier, shavePBezier, shavePCBezier);
+          env.lastCurve = xypic.LastCurve.QuadBezier(origBezier, shavePBezier, shavePCBezier);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
           
@@ -9793,13 +9791,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           }
           var cb = shavePCBezier;
           if (cb === undefined) {
-            env.mostRecentLine = xypic.MostRecentLine.none;
+            env.lastCurve = xypic.LastCurve.none;
             env.angle = 0;
             return xypic.Shape.none;
           }
           
           shape = shavePCBezier.toShape(context, objectForDrop, objectForConnect);
-          env.mostRecentLine = xypic.MostRecentLine.CubicBezier(origBezier, shavePBezier, shavePCBezier);
+          env.lastCurve = xypic.LastCurve.CubicBezier(origBezier, shavePBezier, shavePCBezier);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
           
@@ -9811,12 +9809,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           
           var n = shavePCBeziers.countOfSegments;
           if (n == 0) {
-            env.mostRecentLine = xypic.MostRecentLine.none;
+            env.lastCurve = xypic.LastCurve.none;
             env.angle = 0;
             return xypic.Shape.none;
           }
           shape = shavePCBeziers.toShape(context, objectForDrop, objectForConnect);
-          env.mostRecentLine = xypic.MostRecentLine.CubicBSpline(s, e, origBeziers, shavePBeziers, shavePCBeziers);
+          env.lastCurve = xypic.LastCurve.CubicBSpline(s, e, origBeziers, shavePBeziers, shavePCBeziers);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
       }
@@ -10951,7 +10949,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.prevSegmentEndPoint = c;
       var s = env.p.edgePoint(c.x, c.y);
       var e = env.c.edgePoint(p.x, p.y);
-      env.mostRecentLine = xypic.MostRecentLine.Line(s, e, p, c);
+      env.lastCurve = xypic.LastCurve.Line(s, e, p, c);
       env.angle = Math.atan2(c.y - p.y, c.x - p.x);
     },
     toLabelsShape: function (context) {
