@@ -3364,35 +3364,50 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var r = this.r;
         var u = this.u;
         var d = this.d;
-        var cx = this.x + (r - l) / 2;
-        var cy = this.y + (u - d) / 2;
+        var x0 = this.x;
+        var y0 = this.y;
+        var cx = x0 + (r - l) / 2;
+        var cy = y0 + (u - d) / 2;
         var rx = (l + r) / 2;
         var ry = (u + d) / 2;
         
-        var delta = pi / 180; // overlapping
-        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
-        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
-        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
-        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
-        
-        var line = xypic.CurveSegment.Line(xypic.Frame.Point(this.x, this.y), xypic.Frame.Point(x, y), 0, 1);
-        
-        var intersec = [];
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, line));
-        
-        if (intersec.length === 0) {
+        var dx = x - x0;
+        var dy = y - y0;
+        var a0 = dy;
+        var b0 = -dx;
+        var c0 = dx * y0 - dy * x0;
+        var a = a0 * rx;
+        var b = b0 * ry;
+        var c = c0 * rx + (rx - ry) * b0 * cy;
+        var aabb = a * a + b * b;
+        var d = a * cx + b * cy + c;
+        var e = -d / aabb;
+        var ff = aabb * rx * rx - d * d;
+        if (ff < 0) {
           return xypic.Frame.Point(this.x, this.y - this.d);
+        }
+        var f = Math.sqrt(ff) / aabb;
+        
+        var xp = a * e + b * f + cx;
+        var yp = b * e - a * f + cy;
+        var xm = a * e - b * f + cx;
+        var ym = b * e + a * f + cy;
+        
+        var eps = ry / rx;
+        var xp0 = xp;
+        var yp0 = eps * (yp - cy) + cy;
+        var xm0 = xm;
+        var ym0 = eps * (ym - cy) + cy;
+        
+        var dxp = xp0 - x;
+        var dyp = yp0 - y;
+        var dxm = xm0 - x;
+        var dym = ym0 - y;
+        
+        if (dxp * dxp + dyp * dyp < dxm * dxm + dym * dym) {
+          return xypic.Frame.Point(xp0, yp0);
         } else {
-          t = (intersec[0][1].min + intersec[0][1].max)/2;
-          for (var i = 1; i < intersec.length; i++) { 
-            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
-            if (t > ttmp) { t = ttmp; }
-          }
-          var xy = line.position(t);
-          return xypic.Frame.Point(xy.x, xy.y);
+          return xypic.Frame.Point(xm0, ym0);
         }
       }
     },
@@ -3417,35 +3432,50 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var r = this.r;
         var u = this.u;
         var d = this.d;
-        var cx = this.x + (r - l) / 2;
-        var cy = this.y + (u - d) / 2;
+        var x0 = this.x;
+        var y0 = this.y;
+        var cx = x0 + (r - l) / 2;
+        var cy = y0 + (u - d) / 2;
         var rx = (l + r) / 2;
         var ry = (u + d) / 2;
         
-        var delta = pi / 180; // overlapping
-        var arc0 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi - delta, -pi / 2 + delta);
-        var arc1 = xypic.CurveSegment.Arc(cx, cy, rx, ry, -pi / 2 - delta, 0 + delta);
-        var arc2 = xypic.CurveSegment.Arc(cx, cy, rx, ry, 0 - delta, pi / 2 + delta);
-        var arc3 = xypic.CurveSegment.Arc(cx, cy, rx, ry, pi / 2 - delta, pi + delta);
-        
-        var line = xypic.CurveSegment.Line(xypic.Frame.Point(this.x, this.y), xypic.Frame.Point(x, y), -1, 0);
-        
-        var intersec = [];
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc0, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc1, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc2, line));
-        intersec = intersec.concat(xypic.CurveSegment.findIntersections(arc3, line));
-        
-        if (intersec.length === 0) {
+        var dx = x - x0;
+        var dy = y - y0;
+        var a0 = dy;
+        var b0 = -dx;
+        var c0 = dx * y0 - dy * x0;
+        var a = a0 * rx;
+        var b = b0 * ry;
+        var c = c0 * rx + (rx - ry) * b0 * cy;
+        var aabb = a * a + b * b;
+        var d = a * cx + b * cy + c;
+        var e = -d / aabb;
+        var ff = aabb * rx * rx - d * d;
+        if (ff < 0) {
           return xypic.Frame.Point(this.x, this.y - this.d);
+        }
+        var f = Math.sqrt(ff) / aabb;
+        
+        var xp = a * e + b * f + cx;
+        var yp = b * e - a * f + cy;
+        var xm = a * e - b * f + cx;
+        var ym = b * e + a * f + cy;
+        
+        var eps = ry / rx;
+        var xp0 = xp;
+        var yp0 = eps * (yp - cy) + cy;
+        var xm0 = xm;
+        var ym0 = eps * (ym - cy) + cy;
+        
+        var dxp = xp0 - x;
+        var dyp = yp0 - y;
+        var dxm = xm0 - x;
+        var dym = ym0 - y;
+        
+        if (dxp * dxp + dyp * dyp < dxm * dxm + dym * dym) {
+          return xypic.Frame.Point(xm0, ym0);
         } else {
-          t = (intersec[0][1].min + intersec[0][1].max)/2;
-          for (var i = 1; i < intersec.length; i++) { 
-            var ttmp = (intersec[i][1].min + intersec[i][1].max)/2;
-            if (t > ttmp) { t = ttmp; }
-          }
-          var xy = line.position(t);
-          return xypic.Frame.Point(xy.x, xy.y);
+          return xypic.Frame.Point(xp0, yp0);
         }
       }
     },
@@ -3488,6 +3518,63 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  xypic.Range = MathJax.Object.Subclass({
+    Init: function (start, end) {
+      if (start > end) {
+        this.start = end;
+        this.end = start;
+      } else {
+        this.start = start;
+        this.end = end;
+      }
+    },
+    /**
+     * returns difference ranges between this range and a given range: this range \ a given range.
+     */
+    difference: function (range) {
+      var diff = FP.List.empty;
+      var a0 = this.start;
+      var a1 = this.end;
+      var b0 = range.start;
+      var b1 = range.end;
+      if (a1 <= b0) {
+        // a0 < a1 <= b0 < b1
+        diff = diff.prepend(this);
+      } else if (b1 <= a0) {
+        // b0 < b1 <= a0 < a1
+        diff = diff.prepend(this);
+      } else if (a0 < b0) {
+        if (a1 <= b1) {
+          // a0 < b0 <= a1 <= b1
+          diff = diff.prepend(xypic.Range(a0, b0));
+        } else {
+          // a0 < b0 < b1 < a1
+          diff = diff.prepend(xypic.Range(a0, b0));
+          diff = diff.prepend(xypic.Range(b1, a1));
+        }
+      } else /* if (b0 <= a0) */ {
+        if (b1 < a1) {
+          // b0 <= a0 <= b1 < a1
+          diff = diff.prepend(xypic.Range(b1, a1));
+        } /* else {
+          // b0 <= a0 < a1 <= b1
+        } */
+      }
+      return diff;
+    },
+    differenceRanges: function (ranges) {
+      var result = FP.List.empty.prepend(this);
+      ranges.foreach(function (range) {
+        result = result.flatMap(function (remaining) {
+          return remaining.difference(range);
+        });
+      });
+      return result;
+    },
+    toString: function () {
+      return "[" + this.start + ", " + this.end + "]";
+    }
+  });
   
   xypic.Shape = MathJax.Object.Subclass({
     // <<interface>>
@@ -6386,7 +6473,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   }, {
     sign: function (x) { return x>0? 1 : (x===0? 0 : -1); },
     solutionsOfCubicEq: function (a3, a2, a1, a0) {
-      // find minimum solution t in [0, 1]
+      // find solutions t in [0, 1]
       if (a3 === 0) {
         return xypic.Curve.solutionsOfQuadEq(a2, a1, a0);
       }
@@ -6413,12 +6500,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
     },
     solutionsOfQuadEq: function (a2, a1, a0) {
-      // find minimum solution t in [0, 1]
+      // find solutions t in [0, 1]
       if (a2 === 0) {
-        if (a1 === 0) {
-          return (a0 === 0? 0 : []);
-        }
-        return xypic.Curve.filterByIn0to1([-a0 / a1]);
+        return xypic.Curve.solutionsOfLinearEq(a1, a0);
       } else {
         var d = a1 * a1 - 4 * a0 * a2;
         if (d >= 0) {
@@ -6430,6 +6514,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           return [];
         }
       }
+    },
+    solutionsOfLinearEq: function (a1, a0) {
+      // find solution t in [0, 1]
+      if (a1 === 0) {
+        return (a0 === 0? 0 : []);
+      }
+      return xypic.Curve.filterByIn0to1([-a0 / a1]);
     },
     filterByIn0to1: function (ts) {
       var filterdTs = [];
@@ -6561,8 +6652,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       ]
     },
     slice: function (t0, t1) {
-      if (t0 < 0 || t1 > 1 || t0 >= t1) {
+      if (t0 >= t1) {
         return undefined;
+      }
+      
+      if (t0 < 0) {
+        t0 = 0;
+      } 
+      if (t1 > 1) {
+        t1 = 1;
       }
       
       if (t0 === 0 && t1 === 1) {
@@ -6841,8 +6939,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       ]
     },
     slice: function (t0, t1) {
-      if (t0 < 0 || t1 > 1 || t0 >= t1) {
+      if (t0 >= t1) {
         return undefined;
+      }
+      
+      if (t0 < 0) {
+        t0 = 0;
+      } 
+      if (t1 > 1) {
+        t1 = 1;
       }
       
       if (t0 === 0 && t1 === 1) {
@@ -6861,10 +6966,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       var q0x = this.px(t0);
       var q0y = this.py(t0);
-      var q1x = x1 + 2 * t * (x2 - x1) + t * t * (x3 - 2 * x2 + x1);
-      var q1y = y1 + 2 * t * (y2 - y1) + t * t * (y3 - 2 * y2 + y1);
-      var q2x = x2 + t * (x3 - x2);
-      var q2y = y2 + t * (y3 - y2);
+      var q1x = x1 + 2 * t0 * (x2 - x1) + t0 * t0 * (x3 - 2 * x2 + x1);
+      var q1y = y1 + 2 * t0 * (y2 - y1) + t0 * t0 * (y3 - 2 * y2 + y1);
+      var q2x = x2 + t0 * (x3 - x2);
+      var q2y = y2 + t0 * (y3 - y2);
       
       var p0 = xypic.Frame.Point(q0x, q0y);
       var p1 = xypic.Frame.Point(q0x + t1 * (q1x - q0x), q0y + t1 * (q1y - q0y));
@@ -7070,8 +7175,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return [xypic.Curve.CubicBeziers(divS), xypic.Curve.CubicBeziers(divE)];
     },
     slice: function (t0, t1) {
-      if (t0 < 0 || t1 > 1 || t0 >= t1) {
+      if (t0 >= t1) {
         return undefined;
+      }
+      
+      if (t0 < 0) {
+        t0 = 0;
+      } 
+      if (t1 > 1) {
+        t1 = 1;
       }
       
       if (t0 === 0 && t1 === 1) {
@@ -7363,6 +7475,139 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     Init: function (s, e) {
       this.s = s;
       this.e = e;
+    },
+    slice: function (t0, t1) {
+      if (t0 >= t1) {
+        return undefined;
+      }
+      
+      if (t0 < 0) {
+        t0 = 0;
+      }
+      
+      if (t1 > 1) {
+        t1 = 1;
+      }
+      
+      if (t0 === 0 && t1 === 1) {
+        return this;
+      }
+      
+      var s = this.s;
+      var e = this.e;
+      var dx = e.x - s.x;
+      var dy = e.y - s.y;
+      var newS = xypic.Frame.Point(s.x + t0 * dx, s.y + t0 * dy);
+      var newE = xypic.Frame.Point(s.x + t1 * dx, s.y + t1 * dy);
+      return xypic.Curve.Line(newS, newE);
+    },
+    tOfIntersections: function (frame) {
+      if (frame.isPoint()) {
+        return []; // CAUTION: Point does not intersect with any curves.
+      }
+      
+      var s = this.s;
+      var e = this.e;
+      if (frame.isRect()) {
+        // find starting edge point
+        var rx = frame.x + frame.r;
+        var lx = frame.x - frame.l;
+        var uy = frame.y + frame.u;
+        var dy = frame.y - frame.d;
+        
+        var a0x = s.x;
+        var a0y = s.y;
+        var a1x = e.x - a0x;
+        var a1x = e.y - a0y;
+        var px = function (t) { return a0x + t * a1x; }
+        var py = function (t) { return a0y + t * a1y; }
+        
+        var ts = [];
+        var tsCandidate;
+        tsCandidate = xypic.Curve.solutionsOfLinearEq(a1x, a0x - rx);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfLinearEq(a1x, a0x - lx));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var y = py(t);
+          if (y >= dy && y <= uy) {
+            ts.push(t);
+          }
+        }
+        tsCandidate = xypic.Curve.solutionsOfLinearEq(a1y, a0y - uy);
+        tsCandidate = tsCandidate.concat(xypic.Curve.solutionsOfLinearEq(a1y, a0y - dy));
+        for (var i = 0; i < tsCandidate.length; i++) {
+          var t = tsCandidate[i];
+          var x = px(t);
+          if (x >= lx && x <= rx) {
+            ts.push(t);
+          }
+        }
+        
+        return ts;
+      } else if (frame.isCircle()) {
+        var pi = Math.PI;
+        var l = frame.l;
+        var r = frame.r;
+        var u = frame.u;
+        var d = frame.d;
+        var x0 = frame.x;
+        var y0 = frame.y;
+        var cx = x0 + (r - l) / 2;
+        var cy = y0 + (u - d) / 2;
+        var rx = (l + r) / 2;
+        var ry = (u + d) / 2;
+        
+        var sx = s.x;
+        var sy = s.y;
+        var ex = e.x;
+        var ey = e.y;
+        
+        var dx = ex - sx;
+        var dy = ey - sy;
+        var a0 = dy;
+        var b0 = -dx;
+        var c0 = dx * sy - dy * sx;
+        var a = a0 * rx;
+        var b = b0 * ry;
+        var c = c0 * rx + (rx - ry) * b0 * cy;
+        var aabb = a * a + b * b;
+        var d = a * cx + b * cy + c;
+        var e = -d / aabb;
+        var ff = aabb * rx * rx - d * d;
+        if (ff < 0) {
+          return [];
+        }
+        var f = Math.sqrt(ff) / aabb;
+        
+        var xp = a * e + b * f + cx;
+        var yp = b * e - a * f + cy;
+        var xm = a * e - b * f + cx;
+        var ym = b * e + a * f + cy;
+        
+        var eps = ry / rx;
+        var xp0 = xp;
+        var yp0 = eps * (yp - cy) + cy;
+        var xm0 = xm;
+        var ym0 = eps * (ym - cy) + cy;
+        
+        var tp, tm;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          tp = (xp0 - sx) / dx;
+          tm = (xm0 - sx) / dx;
+        } else {
+          tp = (yp0 - sy) / dy;
+          tm = (ym0 - sy) / dy;
+        }
+        
+        var ts = [];
+        if (tp >= 0 && tp <= 1) {
+          ts.push(tp);
+        }
+        if (tm >= 0 && tm <= 1) {
+          ts.push(tm);
+        }
+        return ts;
+      }
     },
     toShape: function (context, object, main, variant) {
       // 多重線の幅、点線・破線の幅の基準
