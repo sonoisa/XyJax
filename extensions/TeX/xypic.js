@@ -105,6 +105,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   var AST = xypic.AST = MathJax.Object.Subclass({});
   
   MathJax.Hub.Insert(TEXDEF, {
+    macros: {
+      hole: ['Macro', '\\hspace{6pt}']
+    },
     environment: {
       xy: ['ExtensionEnv', null, 'XYpic']
     }
