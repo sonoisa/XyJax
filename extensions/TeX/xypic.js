@@ -8599,9 +8599,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.origBezier = origBezier; // unshaved
       this.tOfShavedStart = tOfShavedStart;
       this.tOfShavedEnd = tOfShavedEnd;
-      this.curveShape = curveShape;
-      if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
-      if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      if (!curveShape.isNone) {
+        this.curveShape = curveShape;
+        if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
+        if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      }
     },
     isDefined: true,
     position: function (t) {
@@ -8674,9 +8676,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.origBezier = origBezier; // unshaved
       this.tOfShavedStart = tOfShavedStart;
       this.tOfShavedEnd = tOfShavedEnd;
-      this.curveShape = curveShape;
-      if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
-      if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      if (!curveShape.isNone) {
+        this.curveShape = curveShape;
+        if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
+        if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      }
     },
     originalLine: function () {
       return this.originalLine;
@@ -8754,9 +8758,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.origBeziers = origBeziers; // unshaved
       this.tOfShavedStart = tOfShavedStart;
       this.tOfShavedEnd = tOfShavedEnd;
-      this.curveShape = curveShape;
-      if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
-      if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      if (!curveShape.isNone) {
+        this.curveShape = curveShape;
+        if (tOfShavedStart > 0) { curveShape.sliceHole(xypic.Range(0, tOfShavedStart)); }
+        if (tOfShavedEnd < 1) { curveShape.sliceHole(xypic.Range(tOfShavedEnd, 1)); }
+      }
     },
     isDefined: true,
     position: function (t) {
@@ -9253,7 +9259,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       context.appendShapeToFront(tmpContext.shape);
       
       if (!tmpEnv.lastCurve.isDefined) {
-        tmpEnv.lastCurve = xypic.LastCurve.Line(undefined, tmpEnv.p, tmpEnv.c, tmpEnv.p, tmpEnv.c, undefined);
+        tmpEnv.lastCurve = xypic.LastCurve.Line(tmpEnv.p, tmpEnv.c, tmpEnv.p, tmpEnv.c, undefined);
       }
       
       var intersec = [];
@@ -10323,11 +10329,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               return xypic.Shape.none;
           }
           shape = origBezier.toShape(context, objectForDrop, objectForConnect);
-          if (shape.isNone) {
-              env.angle = 0;
-              env.lastCurve = xypic.LastCurve.none;
-              return xypic.Shape.none;
-          }
           env.lastCurve = xypic.LastCurve.QuadBezier(origBezier, tOfShavedStart, tOfShavedEnd, shape);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
@@ -10342,11 +10343,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               return xypic.Shape.none;
           }
           shape = origBezier.toShape(context, objectForDrop, objectForConnect);
-          if (shape.isNone) {
-              env.angle = 0;
-              env.lastCurve = xypic.LastCurve.none;
-              return xypic.Shape.none;
-          }
           env.lastCurve = xypic.LastCurve.CubicBezier(origBezier, tOfShavedStart, tOfShavedEnd, shape);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
@@ -10362,11 +10358,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               return xypic.Shape.none;
           }
           shape = origBeziers.toShape(context, objectForDrop, objectForConnect);
-          if (shape.isNone) {
-              env.angle = 0;
-              env.lastCurve = xypic.LastCurve.none;
-              return xypic.Shape.none;
-          }
           env.lastCurve = xypic.LastCurve.CubicBSpline(s, e, origBeziers, tOfShavedStart, tOfShavedEnd, shape);
           env.angle = Math.atan2(e.y - s.y, e.x - s.x);
           break;
@@ -11502,7 +11493,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.prevSegmentEndPoint = c;
       var s = env.p.edgePoint(c.x, c.y);
       var e = env.c.edgePoint(p.x, p.y);
-      env.lastCurve = xypic.LastCurve.Line(undefined, s, e, p, c, undefined); // TODO これでよいのか？
+      env.lastCurve = xypic.LastCurve.Line(s, e, p, c, undefined);
       env.angle = Math.atan2(c.y - p.y, c.x - p.x);
     },
     toLabelsShape: function (context) {
