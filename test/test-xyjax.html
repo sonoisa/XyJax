@@ -28,21 +28,20 @@
 <hr>
 <p>
 
+\[
+\begin{xy}
+*+{0}
+\PATH ~={**@{-}} ~+{|*{a}}
+'(50,1)*+{1} '(100,-2)*+{2} (150,0)*+{3}
+\end{xy}
+\]
+
 Xy-picの例$(\begin{xy}(0,0);<1cm,0mm>**@{-} ?>*@{>} ?<>*!/_2mm/{\scriptstyle f}\end{xy})$です。
 Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 
 \[
 \begin{xy}
 (0,0) *\txt<10em>\displaystyle{ abc \\ defghi }
-\end{xy}
-\]
-
-\[
-\begin{xy}
-(0,0) *{\begin{array}{c}
-\hbox{abc}\\
-\hbox{defghi}
-\end{array}}
 \end{xy}
 \]
 
@@ -257,7 +256,7 @@ Xy-picの例$(\begin{xy}(0,0);<1cm,10mm>**@{} ?>*@3{>}\end{xy})$です。
 \[
 \begin{xy}
 <4pc,0pc>:(0,0)
-*+{base}="base"
+*+\txt{base}="base"
 \PATH ~={**@{-} ?>*@{>}}
 `l    (-1,-1)*{A} ^a
 `     (1,-1) *{B} ^b
