@@ -262,7 +262,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return "?(" + this.place + ")";
     }
   });
-  // <pos2> ::= '@+' <corrd>
+  // <pos2> ::= '@+' <coord>
   AST.Pos.PushCoord = MathJax.Object.Subclass({
     Init: function (coord) {
       this.coord = coord;
@@ -271,7 +271,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return "@+(" + this.coord + ")";
     }
   });
-  // <pos2> ::= '@-' <corrd>
+  // <pos2> ::= '@-' <coord>
   AST.Pos.EvalCoordThenPop = MathJax.Object.Subclass({
     Init: function (coord) {
       this.coord = coord;
@@ -280,7 +280,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return "@-(" + this.coord + ")";
     }
   });
-  // <pos2> ::= '@=' <corrd>
+  // <pos2> ::= '@=' <coord>
   AST.Pos.LoadStack = MathJax.Object.Subclass({
     Init: function (coord) {
       this.coord = coord;
@@ -289,7 +289,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return "@=(" + this.coord + ")";
     }
   });
-  // <pos2> ::= '@@' <corrd>
+  // <pos2> ::= '@@' <coord>
   AST.Pos.DoCoord = MathJax.Object.Subclass({
     Init: function (coord) {
       this.coord = coord;
@@ -708,7 +708,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   });
   
   // <objectbox> ::= '\dir' <variant> '{' <main> '}'
-  // <variant> ::= '^' | '_' | '2' | '3' | <empty>
+  // <variant> ::= '^' | '_' | '0' | '1' | '2' | '3' | <empty>
   // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':')*
   AST.ObjectBox.Dir = AST.ObjectBox.Subclass({
     Init: function (variant, main) {
@@ -1406,6 +1406,283 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // <command> ::= '\ar' ( <arrow_form> )* <path>
+  AST.Command.Ar = MathJax.Object.Subclass({
+    Init: function (forms, path) {
+      this.forms = forms;
+      this.path = path;
+    },
+    toString: function () {
+      return "\\ar " + this.forms.mkString(" ") + " " + this.path;
+    }
+  });
+  
+  // <arrow_form>
+  AST.Command.Ar.Form = MathJax.Object.Subclass({});
+  // <arrow_form> ::= '@' <variant> ( '{' <tip> ( <conn> <tip> )? '}' )?
+  // <variant> ::= /[^_0123]/ | <empty>
+  AST.Command.Ar.Form.BuildArrow = AST.Command.Ar.Form.Subclass({
+    /**
+     * @param {String} variant variant
+     * @param {AST.Command.Ar.Form.Tip.*} tailTip arrow tail
+     * @param {AST.Command.Ar.Form.Conn.*} stemConn arrow stem
+     * @param {AST.Command.Ar.Form.Tip.*} headTip arrow head
+     */
+    Init: function (variant, tailTip, stemConn, headTip) {
+      this.variant = variant;
+      this.tailTip = tailTip;
+      this.stemConn = stemConn;
+      this.headTip = headTip;
+    },
+    toString: function () {
+      return "@" + this.variant + "{" + this.tailTip.toString() + ", " + this.stemConn.toString() + ", " + this.headTip.toString() + "}";
+    }
+  });
+  // <arrow_form> ::= '@' <variant>
+  AST.Command.Ar.Form.ChangeVariant = AST.Command.Ar.Form.Subclass({
+    /**
+     * @param {String} variant variant
+     */
+    Init: function (variant) {
+      this.variant = variant;
+    },
+    toString: function () {
+      return "@" + this.variant;
+    }
+  });
+  // <tip> ::= /[<>()|'`+/a-zA-Z ]+/
+  //         | <arrow_dir>
+  //         | <empty>
+  // <arrow_dir> ::= '*' <object>
+  //               | <dir>
+  AST.Command.Ar.Form.Tip = MathJax.Object.Subclass({});
+  AST.Command.Ar.Form.Tip.Tipchars = MathJax.Object.Subclass({
+    /**
+     * @param {String} tipchars tip characters
+     */
+    Init: function (tipchars) {
+      this.tipchars = tipchars;
+    },
+    toString: function () {
+      return this.tipchars;
+    }
+  });
+  AST.Command.Ar.Form.Tip.Object = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Object} object object as a dir
+     */
+    Init: function (object) {
+      this.object = object;
+    },
+    toString: function () {
+      return "*" + this.object;
+    }
+  });
+  AST.Command.Ar.Form.Tip.Dir = MathJax.Object.Subclass({
+    /**
+     * @param {AST.ObjectBox.Dir} dir dir
+     */
+    Init: function (dir) {
+      this.dir = dir;
+    },
+    toString: function () {
+      return this.dir;
+    }
+  });
+  
+  // <conn> ::= /[\-\.~=:]+/
+  //          | <arrow_dir>
+  //          | <empty>
+  AST.Command.Ar.Form.Conn = MathJax.Object.Subclass({});
+  AST.Command.Ar.Form.Conn.Connchars = MathJax.Object.Subclass({
+    /**
+     * @param {String} connchars direction name
+     */
+    Init: function (connchars) {
+      this.connchars = connchars;
+    },
+    toString: function () {
+      return this.connchars;
+    }
+  });
+  AST.Command.Ar.Form.Conn.Object = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Object} object object as a dir
+     */
+    Init: function (object) {
+      this.object = object;
+    },
+    toString: function () {
+      return "*" + this.object;
+    }
+  });
+  AST.Command.Ar.Form.Conn.Dir = MathJax.Object.Subclass({
+    /**
+     * @param {AST.ObjectBox.Dir} dir dir
+     */
+    Init: function (dir) {
+      this.dir = dir;
+    },
+    toString: function () {
+      return this.dir;
+    }
+  });
+  
+  // <arrow_form> ::= '@' <conchar>
+  // <conchar> ::= /[\-\.~=:]/
+  AST.Command.Ar.Form.ChangeStem = MathJax.Object.Subclass({
+    /**
+     * @param {String} connchar arrow stem name
+     */
+    Init: function (connchar) {
+      this.connchar = connchar;
+    },
+    toString: function () {
+      return "@" + this.connchar;
+    }
+  });
+  
+  // <arrow_form> ::= '@' '!'
+  AST.Command.Ar.Form.DashArrowStem = MathJax.Object.Subclass({
+    toString: function () {
+      return "@!";
+    }
+  });
+  
+  // <arrow_form> ::= '@' '/' <direction> ( <loose-dimen> )? '/'
+  AST.Command.Ar.Form.CurveArrow = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Direction.*} curve direction 
+     * @param {String} dist curve distance (dimension)
+     */
+    Init: function (direction, dist) {
+      this.direction = direction;
+      this.dist = dist;
+    },
+    toString: function () {
+      return "@/" + this.direction + " " + this.dist + "/";
+    }
+  });
+  
+  // <arrow_form> ::= '@' '(' <direction> ',' <direction> ')'
+  AST.Command.Ar.Form.CurveFitToDirection = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Direction.*} out direction 
+     * @param {AST.Direction.*} in direction 
+     */
+    Init: function (outDirection, inDirection) {
+      this.outDirection = outDirection;
+      this.inDirection = inDirection;
+    },
+    toString: function () {
+      return "@(" + this.outDirection + "," + this.inDirection + ")";
+    }
+  });
+  
+  // <arrow_form> ::= '@' '`' <coord>
+  AST.Command.Ar.Form.CurveWithControlPoints = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Coord} controlPoints
+     */
+    Init: function (coord) {
+      this.coord = coord;
+    },
+    toString: function () {
+      return "@`{" + this.coord + "}"
+    }
+  });
+  
+  // <arrow_form> ::= '@' '[' <shape> ']'
+  AST.Command.Ar.Form.AddShape = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.Shape.*} shape shape
+     */
+    Init: function (shape) {
+      this.shape = shape;
+    },
+    toString: function () {
+      return "@[" + this.shape + "]";
+    }
+  });
+  
+  // <arrow_form> ::= '@' '*' '{' ( <modifier> )* '}'
+  AST.Command.Ar.Form.AddModifiers = MathJax.Object.Subclass({
+    /**
+     * @param {List[AST.Modifier.*]} modifiers modifiers
+     */
+    Init: function (modifiers) {
+      this.modifiers = modifiers;
+    },
+    toString: function () {
+      return "@*{" + this.modifiers.mkString(" ") + "}";
+    }
+  });
+  
+  // <arrow_form> ::= '@' '<' <dimen> '>'
+  AST.Command.Ar.Form.Slide = MathJax.Object.Subclass({
+    /**
+     * @param {String} slide dimension
+     */
+    Init: function (slideDimen) {
+      this.slideDimen = slideDimen;
+    },
+    toString: function () {
+      return "@<" + this.slideDimen + ">";
+    }
+  });
+  
+  // <arrow_form> ::= '|' <anchor> <it>
+  AST.Command.Ar.Form.LabelAt = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Place} anchor label anchor
+     * @param {AST.Object} it label
+     */
+    Init: function (anchor, it) {
+      this.anchor = anchor;
+      this.it = it;
+    },
+    toString: function () {
+      return "|" + this.anchor + " " + this.it;
+    }
+  });
+  
+  // <arrow_form> ::= '^' <anchor> <it>
+  AST.Command.Ar.Form.LabelAbove = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Place} anchor label anchor
+     * @param {AST.Object} it label
+     */
+    Init: function (anchor, it) {
+      this.anchor = anchor;
+      this.it = it;
+    },
+    toString: function () {
+      return "^" + this.anchor + " " + this.it;
+    }
+  });
+  
+  // <arrow_form> ::= '_' <anchor> <it>
+  AST.Command.Ar.Form.LabelBelow = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Place} anchor label anchor
+     * @param {AST.Object} it label
+     */
+    Init: function (anchor, it) {
+      this.anchor = anchor;
+      this.it = it;
+    },
+    toString: function () {
+      return "_" + this.anchor + " " + this.it;
+    }
+  });
+  
+  // <arrow_form> ::= '@' '?'
+  AST.Command.Ar.Form.ReverseAboveAndBelow = MathJax.Object.Subclass({
+    toString: function () {
+      return "@?";
+    }
+  });
+  
   
   var fun = FP.Parsers.fun;
   var elem = FP.Parsers.elem;
@@ -1836,10 +2113,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }),
     
     // <dir> ::= <variant> '{' <main> '}'
-    // <variant> ::= '^' | '_' | '2' | '3' | <empty>
+    // <variant> ::= '^' | '_' | '0' | '1' | '2' | '3' | <empty>
     // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':')*
     dir: memo(function () {
-      return regexLit(/^[\^_23]/).opt().andl(flit('{')).and(fun(regexLit(/^(-|\.|~|>|<|\(|\)|`|'|\||\*|\+|x|\/|o|=|:)*/ /*'*/).opt())).andl(flit('}')).to(function (vm) {
+      return regexLit(/^[\^_0123]/).opt().andl(flit('{')).and(fun(regexLit(/^(-|\.|~|>|<|\(|\)|`|'|\||\*|\+|x|\/|o|=|:)*/ /*'*/).opt())).andl(flit('}')).to(function (vm) {
         return AST.ObjectBox.Dir(vm.head.getOrElse(""), vm.tail.getOrElse(""));
       })
     }),
@@ -1909,7 +2186,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       });
     }),
     
-    // <curve> ::= '\crv' <curve-modifier> '{' <curve-object> <poslist> '}'
+    // <curve> ::= '\crv' <curve-modifier> '{' <curve-object> <curve-poslist> '}'
     curve: memo(function () {
       return lit("\\crv").andr(p.curveModifier).andl(flit("{")).and(p.curveObject).and(p.curvePoslist).andl(flit("}")).to(function (mop) {
         return AST.ObjectBox.Curve(mop.head.head, mop.head.tail, mop.tail);
@@ -2211,7 +2488,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       })
     }),
     
-    // <command> ::= '\save' <pos>
+    // <command> ::= '\ar' ( <arrow_form> )* <path>
+    //           |   '\save' <pos>
     //           |   '\restore'
     //           |   '\POS' <pos>
     //           |   '\afterPOS' '{' <decor> '}' <pos>
@@ -2223,6 +2501,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //           |   '\xyignore' '{' <pos> <decor> '}'
     command: memo(function () {
       return or(
+        lit("\\ar").andr(fun(rep(p.arrowForm))).and(p.path).to(function (fsp) {
+          return AST.Command.Ar(fsp.head, fsp.tail);
+        }),
         lit("\\save").andr(p.pos).to(function (pos) {
           return AST.Command.Save(pos);
         }),
@@ -2255,6 +2536,131 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         lit("\\xyshowAST").andr(flit('{')).andr(p.pos).and(p.decor).andl(flit('}')).to(function (pd) {
           return AST.Command.ShowAST(pd.head, pd.tail);
+        })
+      );
+    }),
+    
+    // <arrow_form> ::= '@' <conchar>
+    //              |   '@' '!'
+    //              |   '@' '/' <direction> ( <loose-dimen> )? '/'
+    //              |   '@' '(' <direction> ',' <direction> ')'
+    //              |   '@' '`' '{' <curve-poslist> '}'
+    //              |   '@' '[' <shape> ']'
+    //              |   '@' '*' '{' ( <modifier> )* '}'
+    //              |   '@' '<' <dimen> '>'
+    //              |   '|' <anchor> <it>
+    //              |   '^' <anchor> <it>
+    //              |   '_' <anchor> <it>
+    //              |   '@' '?'
+    //              |   '@' <variant> ( <tip_conn_tip> )?
+    // <conchar> ::= /[\-\.~=:]/
+    // <variant> ::= /[\^_0123]/ | <empty>
+    arrowForm: memo(function () {
+      return or(
+        lit("@").andr(fun(regex(/^([\-\.~=:])/))).to(function (c) {
+          return AST.Command.Ar.Form.ChangeStem(c);
+        }),
+        lit("@").andr(flit("!")).to(function (c) {
+          return AST.Command.Ar.Form.DashArrowStem();
+        }),
+        lit("@").andr(flit("/")).andr(p.direction).and(fun(opt(p.looseDimen))).andl(flit("/")).to(function (dd) {
+          return AST.Command.Ar.Form.CurveArrow(dd.head, dd.tail.getOrElse(".5pc"));
+        }),
+        lit("@").andr(flit("(")).andr(p.direction).andl(flit(",")).and(p.direction).andl(flit(")")).to(function (dd) {
+          return AST.Command.Ar.Form.CurveFitToDirection(dd.head, dd.tail);
+        }),
+        lit("@").andr(flit("`")).andr(p.coord).to(function (c) {
+          return AST.Command.Ar.Form.CurveWithControlPoints(c);
+        }),
+        lit("@").andr(flit("[")).andr(p.shape).andl(flit("]")).to(function (s) {
+          return AST.Command.Ar.Form.AddShape(s);
+        }),
+        lit("@").andr(flit("*")).andr(flit("{")).andr(fun(rep(p.modifier))).andl(flit("}")).to(function (ms) {
+          return AST.Command.Ar.Form.AddModifiers(ms);
+        }),
+        lit("@").andr(flit("<")).andr(p.dimen).andl(flit(">")).to(function (d) {
+          return AST.Command.Ar.Form.Slide(d);
+        }),
+        lit("|").andr(p.anchor).and(p.it).to(function (ai) {
+          return AST.Command.Ar.Form.LabelAt(ai.head, ai.tail);
+        }),
+        lit("^").andr(p.anchor).and(p.it).to(function (ai) {
+          return AST.Command.Ar.Form.LabelAbove(ai.head, ai.tail);
+        }),
+        lit("_").andr(p.anchor).and(p.it).to(function (ai) {
+          return AST.Command.Ar.Form.LabelBelow(ai.head, ai.tail);
+        }),
+        lit("@").andr(flit("?")).to(function () {
+          return AST.Command.Ar.Form.ReverseAboveAndBelow();
+        }),
+        lit("@").andr(fun(regex(/^([\^_0123])/).opt())).and(fun(opt(p.tipConnTip))).to(function (vtct) {
+          var variant = vtct.head.getOrElse("");
+          if (vtct.tail.isDefined) {
+            var tct = vtct.tail.get;
+            return AST.Command.Ar.Form.BuildArrow(variant, tct.tail, tct.stem, tct.head);
+          } else {
+            return AST.Command.Ar.Form.ChangeVariant(variant);
+          }
+        })
+      );
+    }),
+    
+    // <tip_conn_tip> ::= '{' <nonempty_tip>? <nonempty_conn>? <nonempty_tip>? '}'
+    tipConnTip: memo(function () {
+      return lit("{").andr(fun(opt(p.nonemptyTip))).and(fun(opt(p.nonemptyConn))).and(fun(opt(p.nonemptyTip))).andl(flit("}")).to(function (pcp) {
+        var maybeTail = pcp.head.head;
+        var maybeStem = pcp.head.tail;
+        var maybeHead = pcp.tail;
+        
+        var emptyTip = AST.Command.Ar.Form.Tip.Tipchars("");
+        var tail, stem, head;
+        if (!maybeStem.isDefined && !maybeHead.isDefined) {
+          tail = emptyTip;
+          stem = AST.Command.Ar.Form.Conn.Connchars("-");
+          head = maybeTail.getOrElse(emptyTip);
+        } else {
+          tail = maybeTail.getOrElse(emptyTip);
+          stem = maybeStem.getOrElse(AST.Command.Ar.Form.Conn.Connchars(""));
+          head = maybeHead.getOrElse(emptyTip);
+        }
+        return {
+          tail:tail,
+          stem:stem,
+          head:head
+        };
+      });
+    }),
+    
+    // <nonempty_tip> ::= /[<>()|'`+/a-zA-Z ]+/
+    //         | <arrow_dir>
+    // <arrow_dir> ::= '*' <object>
+    //               | <dir>
+    nonemptyTip: memo(function () {
+      return or(
+        regex(/^([<>()|'`+\/a-zA-Z ]+)/).to(function (cs) {
+          return AST.Command.Ar.Form.Tip.Tipchars(cs);
+        }),
+        lit("*").andr(p.object).to(function (o) {
+          return AST.Command.Ar.Form.Tip.Object(o);
+        }),
+        p.dir().to(function (d) {
+          return AST.Command.Ar.Form.Tip.Dir(d);
+        })
+      );
+    }),
+    
+    // <nonempty_conn> ::= /[\-\.~=:]+/
+    //          | <arrow_dir>
+    nonemptyConn: memo(function () {
+      return or(
+        regex(/^([\-\.~=:]+)/).to(function (cs) {
+          return AST.Command.Ar.Form.Conn.Connchars(cs);
+        }),
+        lit("*").andr(p.object).to(function (o) {
+          return AST.Command.Ar.Form.Conn.Object(o);
+        }),
+        p.dir().to(function (d) {
+          return AST.Command.Ar.Form.Conn.Dir(d);
         })
       );
     }),
@@ -2402,7 +2808,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     // <it> ::= ( '[' <shape> ']' )* <it2>
     it: memo(function () {
       return rep(lit('[').andr(p.shape).andl(flit(']')).to(function (s) {
-        return AST.Modifier.Shape(s);
+        return s;
       })).and(p.it2).to(function (si) {
         return AST.Object(si.head.concat(si.tail.modifiers), si.tail.object);
       });
@@ -2410,15 +2816,19 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     
     // <it2> ::= <digit> | <letter>
     //       |   '{' <text> '}'
+    //       |   '\' <letters>
     //       |   '*' <object>
     //       |   '@' <dir>
     it2: memo(function () {
       return or(
         regexLit(/^[0-9a-zA-Z]/).to(function (c) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle "+c));
+          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+        }),
+        regexLit(/^(\\[a-zA-Z][a-zA-Z0-9]*)/).to(function (c) {
+          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
         }),
         lit("{").andr(p.text).andl(felem("}")).to(function (t) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle "+t));
+          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + t));
         }),
         lit('*').andr(p.object),
         lit('@').andr(p.dir).to(function (dir) {
@@ -6159,7 +6569,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
     },
     _drawCurve: function (svg, objectForDrop, objectForConnect) {
-      var thickness = HTMLCSS.length2em("0.15em"), vshift;
+      var thickness = HTMLCSS.length2em("0.15em");
+      var vshift;
       if (objectForConnect !== undefined) {
         var main = objectForConnect.dirMain();
         var variant = objectForConnect.dirVariant();
@@ -6181,7 +6592,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         switch (main) {
           case '':
-            // draw nothing
+            // draw nothing.
             break;
             
           case '-':
@@ -6366,7 +6777,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     toShape: function (context, objectForDrop, objectForConnect) {
       var env = context.env;
-      var thickness = HTMLCSS.length2em("0.15em"), vshift;
+      var thickness = HTMLCSS.length2em("0.15em");
       var shape = xypic.Shape.none;
       var vshift;
       if (objectForConnect !== undefined) {
@@ -6390,7 +6801,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         
         switch (main) {
           case '':
-            // draw nothing
+            vshift = 0;
             break;
             
           case '-':
@@ -8660,7 +9071,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       for (var i = 1; i < intersections.length; i++) {
         var t1 = intersections[i];
         if (t0 <= t && t <= t1) {
-          var p = bezier.position((t1 + t0) / 2);
+          var p = curve.position((t1 + t0) / 2);
           if (holeFrame.contains(p)) {
             var range = xypic.Range(t0, t1);
             shape.sliceHole(range);
@@ -8740,7 +9151,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       for (var i = 1; i < intersections.length; i++) {
         var t1 = intersections[i];
         if (t0 <= t && t <= t1) {
-          var p = bezier.position((t1 + t0) / 2);
+          var p = curve.position((t1 + t0) / 2);
           if (holeFrame.contains(p)) {
             var range = xypic.Range(t0, t1);
             shape.sliceHole(range);
@@ -8819,7 +9230,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       for (var i = 1; i < intersections.length; i++) {
         var t1 = intersections[i];
         if (t0 <= t && t <= t1) {
-          var p = bezier.position((t1 + t0) / 2);
+          var p = curve.position((t1 + t0) / 2);
           if (holeFrame.contains(p)) {
             var range = xypic.Range(t0, t1);
             shape.sliceHole(range);
@@ -8939,6 +9350,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var ax = this.origin.x + x * this.xBase.x + y * this.yBase.x;
       var ay = this.origin.y + x * this.xBase.y + y * this.yBase.y;
       return {x:ax, y:ay};
+    },
+    inverseAbsVector: function (ax, ay) {
+      var bxx = this.xBase.x;
+      var bxy = this.xBase.y;
+      var byx = this.yBase.x;
+      var byy = this.yBase.y;
+      var det = bxx * byy - bxy * byx;
+      var dx = ax - this.origin.x;
+      var dy = ay - this.origin.y
+      var x = (byy * dx - byx * dy) / det;
+      var y = (-bxy * dx + bxx * dy) / det;
+      return {x:x, y:y};
     },
     setOrigin: function (x, y) {
       this.origin = {x:x, y:y};
@@ -9478,7 +9901,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
       if (s.x !== e.x || s.y !== e.y) {
-        var shape = xypic.Curve.Line(s, e).toShape(context, object, "object", "");
+        var shape = xypic.Curve.Line(s, e).toShape(context, object, "196883" /* dummy dir name */, "");
         return shape;
       } else {
         env.angle = 0;
@@ -11197,6 +11620,408 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  AST.Command.Ar.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      var origin = env.origin;
+      var xBase = env.xBase;
+      var yBase = env.yBase;
+      var p = env.p;
+      var c = env.c;
+      
+      env.pathActionForBeforeSegment = FP.Option.empty;
+      env.pathActionForAfterSegment = FP.Option.empty;
+      env.labelsForNextSegmentOnly = FP.Option.empty;
+      env.labelsForLastSegmentOnly = FP.Option.empty;
+      env.labelsForEverySegment = FP.Option.empty;
+      env.segmentSlideEm = FP.Option.empty;
+      env.lastTurnDiag = FP.Option.empty;
+      env.prevSegmentEndPoint = env.c;
+      
+      env.arrowVariant = "";
+      env.tailTip = AST.Command.Ar.Form.Tip.Tipchars("");
+      env.headTip = AST.Command.Ar.Form.Tip.Tipchars(">");
+      env.stemConn = AST.Command.Ar.Form.Conn.Connchars("-");
+      env.reverseAboveAndBelow = false;
+      
+      this.forms.foreach(function (f) { f.toShape(context); });
+      
+      if (!env.pathActionForBeforeSegment.isDefined) {
+      // the following AST means **\dir{stem}.
+        env.pathActionForBeforeSegment = FP.Option.Some(
+          AST.PosDecor(
+            AST.Pos.Coord(
+              AST.Coord.C(),
+              FP.List.empty.append(
+                AST.Pos.ConnectObject(
+                  AST.Object(
+                    FP.List.empty, 
+                    env.stemConn.getObject(context)
+                  )
+                )
+              )
+            ),
+            AST.Decor(FP.List.empty)
+          )
+        );
+      }
+      
+      env.labelsForNextSegmentOnly = FP.Option.Some(
+        AST.Command.Path.Labels(
+          FP.List.empty.append(
+            AST.Command.Path.Label.At(
+              AST.Pos.Place(AST.Place(1, 1, AST.Place.Factor(0), AST.Slide(FP.Option.empty))),
+              env.tailTip.getObject(context),
+              FP.Option.empty
+            )
+          )
+        )
+      );
+      
+      // arrow head
+      env.labelsForLastSegmentOnly = FP.Option.Some(
+        AST.Command.Path.Labels(
+          FP.List.empty.append(
+            AST.Command.Path.Label.At(
+              AST.Pos.Place(AST.Place(1, 1, AST.Place.Factor(1), AST.Slide(FP.Option.empty))),
+              env.headTip.getObject(context),
+              FP.Option.empty
+            )
+          )
+        )
+      );
+      
+      this.path.toShape(context);
+      
+      env.c = c;
+      env.p = p;
+      env.origin = origin;
+      env.xBase = xBase;
+      env.yBase = yBase;
+    }
+  });
+  
+  AST.Command.Ar.Form.BuildArrow.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      env.arrowVariant = this.variant;
+      env.tailTip = this.tailTip;
+      env.stemConn = this.stemConn;
+      env.headTip = this.headTip;
+    }
+  });
+  
+  AST.Command.Ar.Form.ChangeVariant.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      env.arrowVariant = this.variant;
+    }
+  });
+  
+  AST.Command.Ar.Form.ChangeStem.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      env.stemConn = AST.Command.Ar.Form.Conn.Connchars(this.connchar);
+    }
+  });
+  
+  AST.Command.Ar.Form.DashArrowStem.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Ar.Form.CurveArrow.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      var cpDist = "" + HTMLCSS.length2em(this.dist) * 2 + "em";
+      // the following AST means **\crv{{**@{} ?+/d 2l/}}. too long...
+      env.pathActionForBeforeSegment = FP.Option.Some(
+        AST.PosDecor(
+          AST.Pos.Coord(
+            AST.Coord.C(),
+            FP.List.empty.append(
+              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+                FP.List.empty,
+                FP.List.empty.append(
+                  AST.ObjectBox.Curve.Object.Connect(
+                    env.stemConn.getObject(context)
+                  )
+                ),
+                FP.List.empty.append(
+                  AST.ObjectBox.Curve.PosList.Pos(
+                    AST.Pos.Coord(
+                      AST.Coord.Group(
+                        AST.PosDecor(
+                          AST.Pos.Coord(
+                            AST.Coord.C(),
+                            FP.List.empty.append(
+                              AST.Pos.ConnectObject(
+                                AST.Object(
+                                  FP.List.empty,
+                                  AST.ObjectBox.Dir("", "")
+                                )
+                              )
+                            ).append(
+                              AST.Pos.Place(
+                                AST.Place(0, 0, undefined, AST.Slide(FP.Option.empty))
+                              )
+                            ).append(
+                              AST.Pos.Plus(
+                                AST.Coord.Vector(
+                                  AST.Vector.Dir(this.direction, cpDist)
+                                )
+                              )
+                            )
+                          ),
+                          AST.Decor(FP.List.empty)
+                        )
+                      ),
+                      FP.List.empty
+                    )
+                  )
+                )
+              )))
+            )
+          ),
+          AST.Decor(FP.List.empty)
+        )
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.CurveFitToDirection.Augment({
+    toShape: function (context) {
+      // the following AST means **\crv{;+/outdir 2pc/ & ;+/indir 2pc/}.
+      var env = context.env;
+      env.pathActionForBeforeSegment = FP.Option.Some(
+        AST.PosDecor(
+          AST.Pos.Coord(
+            AST.Coord.C(),
+            FP.List.empty.append(
+              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+                FP.List.empty,
+                FP.List.empty.append(
+                  AST.ObjectBox.Curve.Object.Connect(
+                    env.stemConn.getObject(context)
+                  )
+                ),
+                FP.List.empty.append(
+                  AST.ObjectBox.Curve.PosList.Pos(
+                    AST.Pos.Coord(
+                      AST.Coord.C(),
+                      FP.List.empty.append(
+                        AST.Pos.SwapPAndC(
+                          AST.Coord.C()
+                        )
+                      ).append(
+                        AST.Pos.Plus(
+                          AST.Coord.Vector(AST.Vector.Dir(this.outDirection, "2pc"))
+                        )
+                      )
+                    )
+                  )
+                ).append(
+                  AST.ObjectBox.Curve.PosList.Pos(
+                    AST.Pos.Coord(
+                      AST.Coord.C(),
+                      FP.List.empty.append(
+                        AST.Pos.SwapPAndC(
+                          AST.Coord.C()
+                        )
+                      ).append(
+                        AST.Pos.Plus(
+                          AST.Coord.Vector(AST.Vector.Dir(this.inDirection, "2pc"))
+                        )
+                      )
+                    )
+                  )
+                )
+              )))
+            )
+          ),
+          AST.Decor(FP.List.empty)
+        )
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.CurveWithControlPoints.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      tmpEnv = env.duplicate();
+      tmpEnv.startCapturePositions();
+      var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
+      this.coord.position(tmpContext);
+      var positions = tmpEnv.endCapturePositions();
+      positions = positions.append(tmpEnv.c);
+      
+      var points = FP.List.empty;
+      positions.reverse().foreach(function (pos) {
+        var xy = env.inverseAbsVector(pos.x, pos.y);
+        points = points.prepend(AST.ObjectBox.Curve.PosList.Pos(
+                    AST.Pos.Coord(
+                      AST.Coord.Vector(AST.Vector.InCurBase(xy.x, xy.y)),
+                      FP.List.empty
+                    )
+                  ));
+      });
+      
+      // the following AST means **\crv{ control points }.
+      env.pathActionForBeforeSegment = FP.Option.Some(
+        AST.PosDecor(
+          AST.Pos.Coord(
+            AST.Coord.C(),
+            FP.List.empty.append(
+              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+                FP.List.empty,
+                FP.List.empty.append(
+                  AST.ObjectBox.Curve.Object.Connect(
+                    env.stemConn.getObject(context)
+                  )
+                ),
+                points
+              )))
+            )
+          ),
+          AST.Decor(FP.List.empty)
+        )
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.AddShape.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Ar.Form.AddModifiers.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Ar.Form.Slide.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Ar.Form.LabelAt.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      env.labelsForEverySegment = FP.Option.Some(
+        AST.Command.Path.Labels(
+          FP.List.empty.append(
+            AST.Command.Path.Label.At(
+              AST.Pos.Place(this.anchor), this.it, FP.Option.empty
+            )
+          )
+        )
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.LabelAbove.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      var label;
+      if (env.reverseAboveAndBelow) {
+        label = AST.Command.Path.Label.Below(
+              AST.Pos.Place(this.anchor), this.it, FP.Option.empty
+            );
+      } else {
+        label = AST.Command.Path.Label.Above(
+              AST.Pos.Place(this.anchor), this.it, FP.Option.empty
+            );
+      }
+      env.labelsForEverySegment = FP.Option.Some(
+        AST.Command.Path.Labels(FP.List.empty.append(label))
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.LabelBelow.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      var label;
+      if (env.reverseAboveAndBelow) {
+        label = AST.Command.Path.Label.Above(
+              AST.Pos.Place(this.anchor), this.it, FP.Option.empty
+            );
+      } else {
+        label = AST.Command.Path.Label.Below(
+              AST.Pos.Place(this.anchor), this.it, FP.Option.empty
+            );
+      }
+      env.labelsForEverySegment = FP.Option.Some(
+        AST.Command.Path.Labels(FP.List.empty.append(label))
+      );
+    }
+  });
+  
+  AST.Command.Ar.Form.ReverseAboveAndBelow.Augment({
+    toShape: function (context) {
+      context.env.reverseAboveAndBelow = true;
+    }
+  });
+  
+  
+  AST.Command.Ar.Form.Conn.Connchars.Augment({
+    getObject: function (context) {
+      var env = context.env;
+      var dir = AST.ObjectBox.Dir(env.arrowVariant, this.connchars);
+      return AST.Object(FP.List.empty, dir);
+    }
+  });
+  
+  AST.Command.Ar.Form.Conn.Object.Augment({
+    getObject: function (context) {
+      return this.object;
+    }
+  });
+  
+  AST.Command.Ar.Form.Conn.Dir.Augment({
+    getObject: function (context) {
+      var env = context.env;
+      var thisDir = this.dir;
+      var dir = thisDir;
+      if (thisDir.variant === "" && env.arrowVariant !== "") {
+        dir = AST.ObjectBox.Dir(env.arrowVariant, thisDir.main);
+      }
+      return AST.Object(FP.List.empty, dir);
+    }
+  });
+  
+  AST.Command.Ar.Form.Tip.Tipchars.Augment({
+    getObject: function (context) {
+      var env = context.env;
+      var dir = AST.ObjectBox.Dir(env.arrowVariant, this.tipchars);
+      return AST.Object(FP.List.empty, dir);
+    }
+  });
+  
+  AST.Command.Ar.Form.Tip.Object.Augment({
+    getObject: function (context) {
+      return this.object;
+    }
+  });
+  
+  AST.Command.Ar.Form.Tip.Dir.Augment({
+    getObject: function (context) {
+      var env = context.env;
+      var thisDir = this.dir;
+      var dir = thisDir;
+      if (thisDir.variant === "" && env.arrowVariant !== "") {
+        dir = AST.ObjectBox.Dir(env.arrowVariant, thisDir.main);
+      }
+      return AST.Object(FP.List.empty, dir);
+    }
+  });
+  
+  
+  
   AST.Command.Path.Augment({
     toShape: function (context) {
       var env = context.env;
@@ -11274,7 +12099,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toShape: function (context) {
       var env = context.env;
       this.segment.setupPositions(context);
-      this.segment.toLabelsShape(context);
       var c = env.c;
       env.pathActionForBeforeSegment.foreach(function (action) {
         action.toShape(context);
@@ -11290,6 +12114,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.pathActionForAfterSegment.foreach(function (action) {
         action.toShape(context);
       });
+      this.segment.toLabelsShape(context);
     }
   });
   
@@ -11297,7 +12122,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toShape: function (context) {
       var env = context.env;
       this.segment.setupPositions(context);
-      this.segment.toLabelsShape(context);
       var c = env.c;
       env.pathActionForBeforeSegment.foreach(function (action) {
         action.toShape(context);
@@ -11317,6 +12141,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.pathActionForAfterSegment.foreach(function (action) {
         action.toShape(context);
       });
+      this.segment.toLabelsShape(context);
     }
   });
   
@@ -11494,10 +12319,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.p = p;
       env.c = c;
       env.prevSegmentEndPoint = c;
-      var s = env.p.edgePoint(c.x, c.y);
-      var e = env.c.edgePoint(p.x, p.y);
-      env.lastCurve = xypic.LastCurve.Line(s, e, p, c, undefined);
-      env.angle = Math.atan2(c.y - p.y, c.x - p.x);
+//      var s = env.p.edgePoint(c.x, c.y);
+//      var e = env.c.edgePoint(p.x, p.y);
+//      env.lastCurve = xypic.LastCurve.Line(s, e, p, c, undefined);
+//      env.angle = Math.atan2(c.y - p.y, c.x - p.x);
     },
     toLabelsShape: function (context) {
       var env = context.env;

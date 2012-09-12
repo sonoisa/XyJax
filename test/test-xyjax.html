@@ -27,16 +27,114 @@
 <h1>XyJax Test Page</h1>
 <hr>
 <p>
+\[
+\begin{xy}
+*{\circ}="b", \ar@(ur,ul) c
+\ar@{.>}@(dr,ul) (20,0)*{\bullet}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+( 0, 0) *\cir<2pt>{}="a",
+(20, 0) *\cir<2pt>{}="b",
+"a";"a" **\crv{;+/ur 2pc/ & ;+/ul 2pc/},
+"a";"b" **\crv{;+/dr 2pc/ & ;+/ul 2pc/}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS ( 0, 10) *\cir<2pt>{}="a",
+     (20,-10) *\cir<2pt>{}="b"
+\POS "a" \ar @`{(0,-30), (20,-30)} "b" |\uparrow
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS ( 0, 10) *\cir<2pt>{}="a",
+     (20,-10) *\cir<2pt>{}="b"
+\POS "a" \ar @/^1ex/ "b" |\uparrow
+\POS "a" \ar @/_1ex/ "b" |\downarrow
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS ( 0, 10) *+\cir<2pt>{}="a",
+     (20,-10) *+\cir<2pt>{}="b",
+     (30,10) *+\cir<2pt>{}="c",
+\POS "a" \ar @/^1.5ex/ ^{f} '"b" "c" |\uparrow
+\POS "a" \ar @/_1.5ex/ "b" |\downarrow
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS (0,0) \ar @^{(->} (20,7)
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS (0,0) \ar @{>>*\composite{\dir{x}*\dir{+}}<<} (20,7)
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\POS (0,0) \ar @{*{x}*{y}*{z}} (20,7)
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xyshowAST{
+( 0, 10) *\cir<2pt>{}="a",
+(20,-10) *\cir<2pt>{}="b",
+"a";"b" **\crv{{**@{} ?+/_ 3ex/}}
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xyshowAST{
+\POS ( 0, 10) *\cir<2pt>{}="a",
+     (20,-10) *\cir<2pt>{}="b"
+\POS "a" \ar @/^1.5ex/ "b" |\uparrow
+\POS "a" \ar @/_1.5ex/ "b" |\downarrow
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xyshowAST{
+*{\circ}="b" \ar @(ur, ul) c
+\ar @{.>}@(dr, ul) (20,0)*{\bullet}
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xyshowAST{
+\ar @^{(->} (20,7)
+}
+\end{xy}
+\]
 
 \[
 \begin{xy}
 *+{0}
 \PATH ~={**@{-}} ~+{|*{\hole}}
-'(1,50)*+{1} '(-2,100)*+{2} (0,150)*+{3}
+'(1,20)*+{1} '(-2,40)*+{2} (0,60)*+{3}
 
 \POS *+{0}
-\PATH ~={**@{-}} ~+{|*{\hole}}
-'(50,1)*+{1} '(100,-2)*+{2} (150,0)*+{3}
+\PATH ~={**@{-}} ~+{|*{a}}
+'(20,1)*+{1} '(40,-2)*+{2} (60,0)*+{3}
 \end{xy}
 \]
 
