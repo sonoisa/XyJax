@@ -12379,13 +12379,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var labelmargin = this.labelmargin;
       if (labelmargin !== 0) {
         var lastCurve = env.lastCurve;
+        var angle;
         if (!lastCurve.isNone) {
-          var angle = lastCurve.angle(t) + Math.PI/2;
-          env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+          angle = lastCurve.angle(t) + Math.PI/2;
         } else {
-          var angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
-          env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+          angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
         }
+        env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
       }
       var lastCurve = env.lastCurve;
       this.it.toDropShape(context);
