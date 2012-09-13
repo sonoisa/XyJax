@@ -3333,8 +3333,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     Init: function (parent, color) {
       this.parent = parent;
       this.drawArea = parent.createSVGElement("g", {
-        stroke: color,
-        fill: color,
+        stroke: color
       });
       this.color = color;
       memoize(this, "getOrigin");
@@ -9858,6 +9857,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (modifiers.isEmpty) {
         return this.object.toDropShape(context);
       } else {
+        console.log(modifiers.toString());
         var tmpEnv = env.duplicate();
         var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
         var reversedProcessedModifiers = FP.List.empty;
@@ -9880,7 +9880,37 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
     },
     toConnectShape: function (context) {
-      return this.object.toConnectShape(context, this);
+      var env = context.env;
+      if (env.c === undefined) {
+        return xypic.Shape.none;
+      }
+      
+      var modifiers = this.modifiers;
+      if (modifiers.isEmpty) {
+        return this.object.toConnectShape(context);
+      } else {
+        var tmpEnv = env.duplicate();
+        var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
+        var reversedProcessedModifiers = FP.List.empty;
+        modifiers.foreach(function (m) {
+          m.preprocess(subcontext, reversedProcessedModifiers);
+          reversedProcessedModifiers = reversedProcessedModifiers.prepend(m);
+        });
+        var objectShape = this.object.toConnectShape(subcontext);
+        env.angle = tmpEnv.angle;
+        env.lastCurve = tmpEnv.lastCurve;
+        var objectBoundingBox = tmpEnv.c;
+        if (objectBoundingBox === undefined) {
+          return xypic.Shape.none;
+        }
+        tmpEnv = env.duplicate(); // restore angle
+        tmpEnv.c = objectBoundingBox;
+        subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
+        objectShape = modifiers.head.modifyShape(subcontext, objectShape, modifiers.tail);
+        context.appendShapeToFront(objectShape);
+        env.c = tmpEnv.c.move(env.c.x, env.c.y);
+        return objectShape;
+      }
     },
     boundingBox: function (context) {
       var tmpEnvContext = context.duplicateEnv();
@@ -9894,14 +9924,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   AST.ObjectBox.Augment({
-    toConnectShape: function (context, object) {
+    toConnectShape: function (context) {
       // 多重線の幅、点線・破線の幅の基準
       var env = context.env;
       var t = AST.xypic.thickness;
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
       if (s.x !== e.x || s.y !== e.y) {
-        var shape = xypic.Curve.Line(s, e).toShape(context, object, "196883" /* dummy dir name */, "");
+        var shape = xypic.Curve.Line(s, e).toShape(context, this, "196883" /* dummy dir name */, "");
         return shape;
       } else {
         env.angle = 0;
@@ -9924,8 +9954,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toDropShape: function (context) {
       return this.object.toDropShape(context);
     },
-    toConnectShape: function (context, object) {
-      return this.object.toConnectShape(context, object);
+    toConnectShape: function (context) {
+      return this.object.toConnectShape(context);
     }
   });
   
@@ -10023,7 +10053,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       return circleShape;
     },
-    toConnectShape: function (context, object) {
+    toConnectShape: function (context) {
       // TODO: 何もしなくてよいかTeXの出力結果を確認する。
       return xypic.Shape.none;
     }
@@ -10352,7 +10382,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       return shape;
     },
-    toConnectShape: function (context, object) {
+    toConnectShape: function (context) {
       var env = context.env;
       var c = env.c;
       var p = env.p;
@@ -10364,7 +10394,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       tmpEnv.c = p.combineRect(c);
       
       var tmpContext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
-      var shape = object.toDropShape(tmpContext);
+      var shape = this.toDropShape(tmpContext);
       context.appendShapeToFront(shape);
       
       return shape;
@@ -10679,7 +10709,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       context.appendShapeToFront(shape);
       return shape;
     },
-    toConnectShape: function (context, object) {
+    toConnectShape: function (context) {
       // 多重線の幅、点線・破線の幅の基準
       var env = context.env;
       var t = AST.xypic.thickness;
@@ -10701,7 +10731,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return xypic.Shape.none;
       return xypic.Frame.Point(env.c.x, env.c.y);
     },
-    toConnectShape: function (context, object) {
+    toConnectShape: function (context) {
       var env = context.env;
       // find object for drop and connect
       var objectForDrop = undefined;
@@ -10740,9 +10770,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             return xypic.Shape.none;
           }
           if (objectForConnect !== undefined) {
-            return objectForConnect.toConnectShape(context, FP.List.empty);
+            return objectForConnect.toConnectShape(context);
           } else {
-            return objectForDrop.toConnectShape(context, FP.List.empty);
+            return objectForDrop.toConnectShape(context);
           }
           
         case 1:
@@ -11147,10 +11177,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Modifier.Augment({
     proceedModifyShape: function (context, objectShape, restModifiers) {
+      console.log(restModifiers.toString());
+      console.log(restModifiers.isEmpty);
       if (restModifiers.isEmpty) {
         return objectShape;
+      } else {
+        return restModifiers.head.modifyShape(context, objectShape, restModifiers.tail);
       }
-      return restModifiers.head.modifyShape(context, objectShape, restModifiers.tail);
     }
   });
   
@@ -11330,9 +11363,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     modifyShape: function (context, objectShape, restModifiers) {
       var modifier = modifierRepository.get(this.alphabets);
       if (modifier !== undefined) {
-        objectShape = modifier.modifyShape(context, objectShape, restModifiers);
+        return modifier.modifyShape(context, objectShape, restModifiers);
       }
-      return this.proceedModifyShape(context, objectShape, restModifiers);
     }
   });
   
@@ -11459,8 +11491,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         this.options.foreach(function (op) { radius = op.getRadius(radius); });
         this.options.foreach(function (op) { colorName = op.getColorName(colorName); });
         
+        var dummyEnv = env.duplicate();
+        var dummyContext = xypic.DrawingContext(xypic.Shape.none, dummyEnv);
         var frameObject = AST.ObjectBox.Frame(radius, this.main);
-        var frameShape = frameObject.toDropFilledShape(context, colorName, env.c.isCircle());
+        var frameShape = frameObject.toDropFilledShape(dummyContext, colorName, env.c.isCircle());
         objectShape = xypic.Shape.CompositeShape(objectShape, frameShape);
       }
       return this.proceedModifyShape(context, objectShape, restModifiers);
@@ -11643,6 +11677,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.headTip = AST.Command.Ar.Form.Tip.Tipchars(">");
       env.stemConn = AST.Command.Ar.Form.Conn.Connchars("-");
       env.reverseAboveAndBelow = false;
+      env.arrowObjectModifiers = FP.List.empty;
       
       this.forms.foreach(function (f) { f.toShape(context); });
       
@@ -11655,7 +11690,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               FP.List.empty.append(
                 AST.Pos.ConnectObject(
                   AST.Object(
-                    FP.List.empty, 
+                    env.arrowObjectModifiers, 
                     env.stemConn.getObject(context)
                   )
                 )
@@ -11741,7 +11776,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           AST.Pos.Coord(
             AST.Coord.C(),
             FP.List.empty.append(
-              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+              AST.Pos.ConnectObject(AST.Object(env.arrowObjectModifiers, AST.ObjectBox.Curve(
                 FP.List.empty,
                 FP.List.empty.append(
                   AST.ObjectBox.Curve.Object.Connect(
@@ -11792,14 +11827,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Command.Ar.Form.CurveFitToDirection.Augment({
     toShape: function (context) {
-      // the following AST means **\crv{;+/outdir 2pc/ & ;+/indir 2pc/}.
+      // the following AST means **\crv{;+/outdir 3pc/ & ;+/indir 3pc/}.
       var env = context.env;
       env.pathActionForBeforeSegment = FP.Option.Some(
         AST.PosDecor(
           AST.Pos.Coord(
             AST.Coord.C(),
             FP.List.empty.append(
-              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+              AST.Pos.ConnectObject(AST.Object(env.arrowObjectModifiers, AST.ObjectBox.Curve(
                 FP.List.empty,
                 FP.List.empty.append(
                   AST.ObjectBox.Curve.Object.Connect(
@@ -11816,7 +11851,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                         )
                       ).append(
                         AST.Pos.Plus(
-                          AST.Coord.Vector(AST.Vector.Dir(this.outDirection, "2pc"))
+                          AST.Coord.Vector(AST.Vector.Dir(this.outDirection, "3pc"))
                         )
                       )
                     )
@@ -11831,7 +11866,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
                         )
                       ).append(
                         AST.Pos.Plus(
-                          AST.Coord.Vector(AST.Vector.Dir(this.inDirection, "2pc"))
+                          AST.Coord.Vector(AST.Vector.Dir(this.inDirection, "3pc"))
                         )
                       )
                     )
@@ -11873,7 +11908,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           AST.Pos.Coord(
             AST.Coord.C(),
             FP.List.empty.append(
-              AST.Pos.ConnectObject(AST.Object(FP.List.empty, AST.ObjectBox.Curve(
+              AST.Pos.ConnectObject(AST.Object(env.arrowObjectModifiers, AST.ObjectBox.Curve(
                 FP.List.empty,
                 FP.List.empty.append(
                   AST.ObjectBox.Curve.Object.Connect(
@@ -11892,19 +11927,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Command.Ar.Form.AddShape.Augment({
     toShape: function (context) {
-      // TODO impl
+      context.env.arrowObjectModifiers = FP.List.empty.append(this.shape);
     }
   });
   
   AST.Command.Ar.Form.AddModifiers.Augment({
     toShape: function (context) {
-      // TODO impl
+      context.env.arrowObjectModifiers = this.modifiers;
     }
   });
   
   AST.Command.Ar.Form.Slide.Augment({
     toShape: function (context) {
-      // TODO impl
+      env.segmentSlideEm = FP.Option.Some(HTMLCSS.length2em(this.slide));
     }
   });
   
@@ -11967,18 +12002,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
-  
   AST.Command.Ar.Form.Conn.Connchars.Augment({
     getObject: function (context) {
       var env = context.env;
       var dir = AST.ObjectBox.Dir(env.arrowVariant, this.connchars);
-      return AST.Object(FP.List.empty, dir);
+      return AST.Object(env.arrowObjectModifiers, dir);
     }
   });
   
   AST.Command.Ar.Form.Conn.Object.Augment({
     getObject: function (context) {
-      return this.object;
+      var modifiers = context.env.arrowObjectModifiers.concat(this.object.modifiers);
+      return AST.Object(modifiers, this.object.object);
     }
   });
   
@@ -11990,7 +12025,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (thisDir.variant === "" && env.arrowVariant !== "") {
         dir = AST.ObjectBox.Dir(env.arrowVariant, thisDir.main);
       }
-      return AST.Object(FP.List.empty, dir);
+      return AST.Object(env.arrowObjectModifiers, dir);
     }
   });
   
@@ -11998,13 +12033,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     getObject: function (context) {
       var env = context.env;
       var dir = AST.ObjectBox.Dir(env.arrowVariant, this.tipchars);
-      return AST.Object(FP.List.empty, dir);
+      return AST.Object(env.arrowObjectModifiers, dir);
     }
   });
   
   AST.Command.Ar.Form.Tip.Object.Augment({
     getObject: function (context) {
-      return this.object;
+      var modifiers = context.env.arrowObjectModifiers.concat(this.object.modifiers);
+      return AST.Object(modifiers, this.object.object);
     }
   });
   
@@ -12016,7 +12052,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (thisDir.variant === "" && env.arrowVariant !== "") {
         dir = AST.ObjectBox.Dir(env.arrowVariant, thisDir.main);
       }
-      return AST.Object(FP.List.empty, dir);
+      return AST.Object(env.arrowObjectModifiers, dir);
     }
   });
   
@@ -12319,10 +12355,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.p = p;
       env.c = c;
       env.prevSegmentEndPoint = c;
-//      var s = env.p.edgePoint(c.x, c.y);
-//      var e = env.c.edgePoint(p.x, p.y);
-//      env.lastCurve = xypic.LastCurve.Line(s, e, p, c, undefined);
-//      env.angle = Math.atan2(c.y - p.y, c.x - p.x);
     },
     toLabelsShape: function (context) {
       var env = context.env;
