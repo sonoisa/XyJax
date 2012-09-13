@@ -28,6 +28,32 @@
 <hr>
 <p>
 
+\[
+\begin{xy}
+<3pc,0pc>:(0,0),
+0*+\txt{start}="start",
+(1,0) *+=+[o][F-]{0}="0",
+(2,0) *+=+[o][F-]{1}="1",
+(3,0) *+=+[o][F-]{2}="2",
+(4,0) *+=+[o][F=]{3}="3",
+
+\POS "start" \ar "0"
+\POS "0" \ar@(r,u) "0"^b \ar "1"_a
+\POS "1" \ar "2"^b \ar@(r,d) "1"_a
+\POS "2" \ar "3"^b
+  \ar `dr_l "1" `_ur "1" _(.2)a "1"
+\POS "3" \ar `ur^l "0" `^dr "0"^b "0"
+  \ar `dr_l "1" `_ur "1" "1"
+\end{xy}
+\]
+
+<!--
+\[
+\begin{xy}
+0*\cir<2pt>{}="a", (20,0)*\cir<2pt>{}="b",
+"a";"a" **\crv{+/ur 3pc/ & p+/ul 3pc/} ?(.5)*!/^3pt/{a}
+\end{xy}
+\]
 
 \[
 \begin{xy}

@@ -6022,7 +6022,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return this.bbox;
     },
     toString: function () {
-      return "CurveShape[curve" + this.curve + ", objectForDrop:" + this.objectForDrop.toString() + ", objectForConnect:" + this.e.toString() + ", bbox:" + this.bbox + "]";
+      return "CurveShape[curve" + this.curve + ", objectForDrop:" + (this.objectForDrop !== undefined? this.objectForDrop.toString() : "null") + ", objectForConnect:" + (this.objectForConnect !== undefined? this.objectForConnect.toString() : "null") + "]";
     }
   });
   
@@ -9857,7 +9857,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (modifiers.isEmpty) {
         return this.object.toDropShape(context);
       } else {
-        console.log(modifiers.toString());
         var tmpEnv = env.duplicate();
         var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
         var reversedProcessedModifiers = FP.List.empty;
@@ -11177,8 +11176,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Modifier.Augment({
     proceedModifyShape: function (context, objectShape, restModifiers) {
-      console.log(restModifiers.toString());
-      console.log(restModifiers.isEmpty);
       if (restModifiers.isEmpty) {
         return objectShape;
       } else {
@@ -12381,8 +12378,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var t = this.anchor.toShape(context);
       var labelmargin = this.labelmargin;
       if (labelmargin !== 0) {
-        var angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
-        env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+        var lastCurve = env.lastCurve;
+        if (!lastCurve.isNone) {
+          var angle = lastCurve.angle(t) + Math.PI/2;
+          env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+        } else {
+          var angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
+          env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+        }
       }
       var lastCurve = env.lastCurve;
       this.it.toDropShape(context);
