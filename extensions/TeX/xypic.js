@@ -1734,7 +1734,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   // <entry> ::= ( '**' '[' <shape> ']' | '**' '{' <modifier>* '}' )* <loose objectbox> <decor>
-  // <loose objectbox> ::= /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
+  // <loose objectbox> ::= <objectbox>
+  //                   |   /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
   // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
   //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
   AST.Command.Xymatrix.Entry = MathJax.Object.Subclass({});
@@ -2969,45 +2970,32 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       );
     }),
     
-    // <loose objectbox> ::= /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
+    // <loose objectbox> ::= <objectbox>
+    //                   |   /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
     // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
     //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
     looseObjectbox: memo(function () {
       return or(
         p.objectbox,
-        regex(/^[^\\{}&]+/).opt().to(function (rs) {
-          return rs.getOrElse("");
-        }).and(fun(
+        regex(/^[^\\{}&]+/).opt().to(function (rs) { return rs.getOrElse(""); }).and(fun(
           rep(
             or(
               elem("{").andr(p.text).andl(felem("}")).to(function (t) { return "{" + t + "}"; }),
-              elem("\\").andr(fun(not(or(
-                flit("\\"),
-                flit("ar"),
-                flit("xymatrix"),
-                flit("PATH"),
-                flit("afterPATH"),
-                flit("save"),
-                flit("restore"),
-                flit("POS"),
-                flit("afterPOS"),
-                flit("drop"),
-                flit("connect"),
-                flit("xyignore")
-              )))).andr(
-                fun(regex(/^[{}&]/).opt().to(function (c) { return c.getOrElse(""); }))
-              ).to(function (t) {
+              elem("\\").andr(fun(
+                not(regex(/^(\\|ar|xymatrix|PATH|afterPATH|save|restore|POS|afterPOS|drop|connect|xyignore)/))
+              )).andr(fun(
+                regex(/^[{}&]/).opt().to(function (c) { return c.getOrElse(""); })
+              )).to(function (t) {
                 return "\\" + t;
               })
-            ).and(
-              fun(regex(/^[^\\{}&]+/).opt().to(function (cs) { return cs.getOrElse(""); }))
-            ).to(function (tt) {
+            ).and(fun(
+              regex(/^[^\\{}&]+/).opt().to(function (cs) { return cs.getOrElse(""); })
+            )).to(function (tt) {
               return tt.head + tt.tail;
             })
           ).to(function (cs) { return cs.mkString("") })
         )).to(function (tt) {
           var text = (tt.head + tt.tail).trim();
-          console.log(text);
           return p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
         })
       )
