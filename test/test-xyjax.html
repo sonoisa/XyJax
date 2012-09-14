@@ -30,6 +30,20 @@
 
 \[
 \begin{xy}
+\xyshowAST{
+\xymatrix{
+ABC \ar "1,2" \ar "2,1" & B \\
+A{CDE}{C\&DE} & D \\
+\dir{x} & \}\{\& \\
+\txt{ABC} & \xymatrix{A&B\\C&D} \ar "r"
+}
+}
+\end{xy}
+\]
+
+<!--
+\[
+\begin{xy}
 <3pc,0pc>:(0,0),
 0*+\txt{start}="start",
 (1,0) *+=+[o][F-]{0}="0",
@@ -73,8 +87,8 @@
 \begin{xy}
 \POS ( 0, 10) *\cir<2pt>{}="a",
      (20,-10) *\cir<2pt>{}="b"
-\POS "a" \ar @/^1ex/ "b" |\uparrow
-\POS "a" \ar @/_1ex/ "b" |\downarrow
+\POS "a" \ar @2 @/^1ex/ "b" |\uparrow
+\POS "a" \ar @2 @/_1ex/ "b" |\downarrow
 \end{xy}
 \]
 

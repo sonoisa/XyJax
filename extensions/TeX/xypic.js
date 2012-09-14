@@ -1683,6 +1683,72 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // <decor> ::= '\xymatrix' <xymatrix>
+  // <xymatrix> ::= <setup> '{' <rows> '}'
+  AST.Command.Xymatrix = MathJax.Object.Subclass({
+    /**
+     * @param {List[AST.Command.Xymatrix.Setup.*]} setup setup configurations
+     * @param {List[AST.Command.Xymatrix.Row]} rows rows
+     */
+    Init: function (setup, rows) {
+      this.setup = setup;
+      this.rows = rows;
+    },
+    toString: function () {
+      return "\\xymatrix" + this.setup + "{\n" + this.rows.mkString("", "\\\\\n", "") + "\n}";
+    }
+  });
+  // <setup> ::= <switch>*
+  AST.Command.Xymatrix.Setup = MathJax.Object.Subclass({});
+  // <switch> ::= '"' <prefix> '"'
+  AST.Command.Xymatrix.Setup.Prefix = AST.Command.Xymatrix.Setup.Subclass({
+    Init: function (prefix) {
+      this.prefix = prefix;
+    },
+    toString: function () {
+      return '"' + this.prefix + '"';
+    }
+  });
+  //     | '@' <rcchar> <add op> <dimen>
+  //     | '@' '!' <rcchar>
+  //     | '@' '!' <rcchar>? '0'
+  //     | '@' '!' <rcchar>? '=' <dimen>
+  //     | '@' <mwhlchar> <add op> <dimen>
+  //     | '@' <direction>
+  //     | '@' '*' '[' <shape> ']'
+  //     | '@' '*' <add op> <size>
+  // <rcchar> ::= 'R' | 'C' | <empty>
+  // <mwhlchar> ::= 'M' | 'W' | 'H' | 'L'
+  
+  // <rows> ::= <row> ( '\\' <row> )*
+  // <row> ::= <entry> ( '&' <entry> )*
+  AST.Command.Xymatrix.Row = MathJax.Object.Subclass({
+    /**
+     * @param {List[AST.Command.Xymatrix.Entry]} entries entries in the row
+     */
+    Init: function (entries) {
+      this.entries = entries;
+    },
+    toString: function () {
+      return this.entries.mkString(" & ");
+    }
+  });
+  // <entry> ::= ( '**' '[' <shape> ']' | '**' '{' <modifier>* '}' )* <loose objectbox> <decor>
+  // <loose objectbox> ::= /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
+  // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
+  //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
+  AST.Command.Xymatrix.Entry = MathJax.Object.Subclass({});
+  AST.Command.Xymatrix.Entry = AST.Command.Xymatrix.Entry.Subclass({
+    Init: function (modifiers, objectbox, decor) {
+      this.modifiers = modifiers;
+      this.objectbox = objectbox;
+      this.decor = decor;
+    },
+    toString: function () {
+      return this.modifiers.mkString("**{", "", "}") + " " + this.objectbox + " " + this.decor;
+    }
+  });
+  
   
   var fun = FP.Parsers.fun;
   var elem = FP.Parsers.elem;
@@ -1696,6 +1762,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   var rep = function (x) { return FP.Parsers.lazyParser(x)().rep(); }
   var rep1 = function (x) { return FP.Parsers.lazyParser(x)().rep1(); }
   var opt = function (x) { return FP.Parsers.lazyParser(x)().opt(); }
+  var not = function (x) { return FP.Parsers.not(FP.Parsers.lazyParser(x)); }
   var success = FP.Parsers.success;
   var memo = function (parser) {
     return function () {
@@ -2489,12 +2556,13 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }),
     
     // <command> ::= '\ar' ( <arrow_form> )* <path>
+    //           |   '\xymatrix' <xymatrix>
+    //           |   '\PATH' <path>
+    //           |   '\afterPATH' '{' <decor> '}' <path>
     //           |   '\save' <pos>
     //           |   '\restore'
     //           |   '\POS' <pos>
     //           |   '\afterPOS' '{' <decor> '}' <pos>
-    //           |   '\PATH' <path>
-    //           |   '\afterPATH' '{' <decor> '}' <path>
     //           |   '\drop' <object>
     //           |   '\connect' <object>
     //           |   '\relax'
@@ -2503,6 +2571,13 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return or(
         lit("\\ar").andr(fun(rep(p.arrowForm))).and(p.path).to(function (fsp) {
           return AST.Command.Ar(fsp.head, fsp.tail);
+        }),
+        lit("\\xymatrix").andr(p.xymatrix),
+        lit("\\PATH").andr(p.path).to(function (path) {
+          return AST.Command.Path(path);
+        }),
+        lit("\\afterPATH").andr(flit('{')).andr(p.decor).andl(flit('}')).and(p.path).to(function (dp) {
+          return AST.Command.AfterPath(dp.head, dp.tail);
         }),
         lit("\\save").andr(p.pos).to(function (pos) {
           return AST.Command.Save(pos);
@@ -2515,12 +2590,6 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         lit("\\afterPOS").andr(flit('{')).andr(p.decor).andl(flit('}')).and(p.pos).to(function (dp) {
           return AST.Command.AfterPos(dp.head, dp.tail);
-        }),
-        lit("\\PATH").andr(p.path).to(function (path) {
-          return AST.Command.Path(path);
-        }),
-        lit("\\afterPATH").andr(flit('{')).andr(p.decor).andl(flit('}')).and(p.path).to(function (dp) {
-          return AST.Command.AfterPath(dp.head, dp.tail);
         }),
         lit("\\drop").andr(p.object).to(function (obj) {
           return AST.Command.Drop(obj);
@@ -2842,6 +2911,106 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return seq('=', '"', p.id, '"').opt().to(function (optId) {
         return optId.map(function (id) { return id.head.tail; });
       });
+    }),
+    
+    // <xymatrix> ::= <setup> '{' <rows> '}'
+    xymatrix: memo(function () {
+      return p.setup().andl(flit("{")).and(p.rows).andl(flit("}")).to(function (sr) {
+        return AST.Command.Xymatrix(sr.head, sr.tail);
+      })
+    }),
+    
+    // <setup> ::= <switch>*
+    // <switch> ::= '"' <prefix> '"'
+    //     | '@' <rcchar> <add op> <dimen>
+    //     | '@' '!' <rcchar>
+    //     | '@' '!' <rcchar>? '0'
+    //     | '@' '!' <rcchar>? '=' <dimen>
+    //     | '@' <mwhlchar> <add op> <dimen>
+    //     | '@' <direction>
+    //     | '@' '*' '[' <shape> ']'
+    //     | '@' '*' <add op> <size>
+    // <rcchar> ::= 'R' | 'C' | <empty>
+    // <mwhlchar> ::= 'M' | 'W' | 'H' | 'L'
+    setup: memo(function () {
+      return rep(fun(or(
+        regex(/^"([^"]+)"/).to(function (p) {
+          return AST.Command.Xymatrix.Setup.Prefix(p.substring(1, p.length - 1));
+        })
+      )));
+    }),
+    
+    // <rows> ::= <row> ( '\\' <row> )*
+    rows: memo(function () {
+      return p.row().and(fun(rep(lit("\\\\").andr(p.row)))).to(function (rrs) {
+        return rrs.tail.prepend(rrs.head);
+      })
+    }),
+    
+    // <row> ::= <entry> ( '&' <entry> )*
+    row: memo(function () {
+      return p.entry().and(fun(rep(lit("&").andr(p.entry)))).to(function (ees) {
+        return AST.Command.Xymatrix.Row(ees.tail.prepend(ees.head));
+      })
+    }),
+    
+    // <entry> ::= <entry modifier>* <loose objectbox> <decor>
+    entry: memo(function () {
+      return p.entryModifier().rep().and(p.looseObjectbox).and(p.decor).to(function (mod) {
+        return AST.Command.Xymatrix.Entry(mod.head.head, mod.head.tail, mod.tail);
+      })
+    }),
+    
+    // <entry modifier> ::= '**' '[' <shape> ']' | '**' '{' <modifier>* '}'
+    entryModifier: memo(function () {
+      return or(
+        lit("**").andr(flit("[")).andr(p.shape).andl(flit("]")),
+        lit("**").andr(flit("{")).andr(fun(rep(p.modifier))).andl(flit("}"))
+      );
+    }),
+    
+    // <loose objectbox> ::= /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
+    // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
+    //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
+    looseObjectbox: memo(function () {
+      return or(
+        p.objectbox,
+        regex(/^[^\\{}&]+/).opt().to(function (rs) {
+          return rs.getOrElse("");
+        }).and(fun(
+          rep(
+            or(
+              elem("{").andr(p.text).andl(felem("}")).to(function (t) { return "{" + t + "}"; }),
+              elem("\\").andr(fun(not(or(
+                flit("\\"),
+                flit("ar"),
+                flit("xymatrix"),
+                flit("PATH"),
+                flit("afterPATH"),
+                flit("save"),
+                flit("restore"),
+                flit("POS"),
+                flit("afterPOS"),
+                flit("drop"),
+                flit("connect"),
+                flit("xyignore")
+              )))).andr(
+                fun(regex(/^[{}&]/).opt().to(function (c) { return c.getOrElse(""); }))
+              ).to(function (t) {
+                return "\\" + t;
+              })
+            ).and(
+              fun(regex(/^[^\\{}&]+/).opt().to(function (cs) { return cs.getOrElse(""); }))
+            ).to(function (tt) {
+              return tt.head + tt.tail;
+            })
+          ).to(function (cs) { return cs.mkString("") })
+        )).to(function (tt) {
+          var text = (tt.head + tt.tail).trim();
+          console.log(text);
+          return p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+        })
+      )
     })
   })();
   
