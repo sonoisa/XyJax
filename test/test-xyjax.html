@@ -30,18 +30,27 @@
 
 \[
 \begin{xy}
-\xymatrix @*[F-] @W=3pc @H=1pc @R=0pc {
-{ABC} & {\int_0^\infty} \\
-**[Fo:<0.5pc>]{ABC} & {\displaystyle \int_0^\infty} \\
-*[F-]{A}& \\
+\xymatrix {
+A \POS[];[d]**\dir{~},[];[dr]**\dir{-} \\
+B & C \POS[];[l]**\dir{.}
 }
 \end{xy}
 \]
 
 \[
 \begin{xy}
-\xymatrix@*[F-]{
-ABC \ar "1,2" \ar "2,1" & B \\
+\xymatrix @r @*[F-] @W=3pc @H=1pc @R=0pc {
+{ABC} \ar "2,2" & {\int_0^\infty} \\
+**[Fo:<0.5pc>]{ABC} & {\displaystyle \int_0^\infty} \\
+*[F-]{A} & \\
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xymatrix@*[F-]"*"{
+ABC \ar [rd] \ar ["*"0,1] & B \\
 A{CDE}{C\&DE} & D \\
 \dir{x} & \{\&\} & {\displaystyle \int_0^\infty} \\
 \txt{ABC} & {} \ar "3,2" \\
@@ -50,7 +59,6 @@ A{CDE}{C\&DE} & D \\
 \end{xy}
 \]
 
-<!--
 \[
 \begin{xy}
 \xyshowAST{
