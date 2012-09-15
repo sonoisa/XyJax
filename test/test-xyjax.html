@@ -30,8 +30,34 @@
 
 \[
 \begin{xy}
+\xymatrix @*[F-] @W=3pc @H=1pc @R=0pc {
+{ABC} & {\int_0^\infty} \\
+**[Fo:<0.5pc>]{ABC} & {\displaystyle \int_0^\infty} \\
+*[F-]{A}& \\
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xymatrix@*[F-]{
+ABC \ar "1,2" \ar "2,1" & B \\
+A{CDE}{C\&DE} & D \\
+\dir{x} & \{\&\} & {\displaystyle \int_0^\infty} \\
+\txt{ABC} & {} \ar "3,2" \\
+*{ABC} c+/u10pt/ \ar "3,1"
+}
+\end{xy}
+\]
+
+<!--
+\[
+\begin{xy}
 \xyshowAST{
-\xymatrix{
+\xymatrix
+@!R @!C @! @!R0 @!R=1pc @!C0 @!C=1pc @!0 @!=1pc @M=1.1pc @W=0em @H=1em @L=0.2em @R=3pc @C=2pc @+=0.1pc
+ {
+@*[F-] @*[o]
 ABC \ar "1,2" \ar "2,1" & B \\
 A{CDE}{C\&DE} & D \\
 \dir{x} & \{\&\} \\
@@ -42,7 +68,6 @@ A{CDE}{C\&DE} & D \\
 \end{xy}
 \]
 
-<!--
 \[
 \begin{xy}
 <3pc,0pc>:(0,0),
