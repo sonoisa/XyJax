@@ -1683,6 +1683,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  
   // <decor> ::= '\xymatrix' <xymatrix>
   // <xymatrix> ::= <setup> '{' <rows> '}'
   AST.Command.Xymatrix = MathJax.Object.Subclass({
@@ -1700,8 +1701,12 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   });
   // <setup> ::= <switch>*
   AST.Command.Xymatrix.Setup = MathJax.Object.Subclass({});
+  
   // <switch> ::= '"' <prefix> '"'
-  AST.Command.Xymatrix.Setup.Prefix = AST.Command.Xymatrix.Setup.Subclass({
+  AST.Command.Xymatrix.Setup.Prefix = MathJax.Object.Subclass({
+    /**
+     * @param {String} prefix name of the xymatrix
+     */
     Init: function (prefix) {
       this.prefix = prefix;
     },
@@ -1709,22 +1714,168 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return '"' + this.prefix + '"';
     }
   });
-  //     | '@' <rcchar> <add op> <dimen>
-  //     | '@' '!' <rcchar>
-  //     | '@' '!' <rcchar>? '0'
-  //     | '@' '!' <rcchar>? '=' <dimen>
-  //     | '@' <mwhlchar> <add op> <dimen>
-  //     | '@' <direction>
-  //     | '@' '*' '[' <shape> ']'
-  //     | '@' '*' <add op> <size>
+  
+  // <switch> ::= '@' 'R' <add op> <dimen>
+  AST.Command.Xymatrix.Setup.ChangeSpacing = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.AddOp.*} addop sizing operator
+     * @param {String} dimen size
+     */
+    Init: function (addop, dimen) {
+      this.addop = addop;
+      this.dimen = dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.ChangeSpacing.Row = AST.Command.Xymatrix.Setup.ChangeSpacing.Subclass({
+    toString: function () {
+      return "@R" + this.addop + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.ChangeSpacing.Column = AST.Command.Xymatrix.Setup.ChangeSpacing.Subclass({
+    toString: function () {
+      return "@C" + this.addop + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.ChangeSpacing.RowAndColumn = AST.Command.Xymatrix.Setup.ChangeSpacing.Subclass({
+    toString: function () {
+      return "@" + this.addop + this.dimen;
+    }
+  });
+  
+  // <switch> ::= '@' '!' <rcchar> '0'
+  // <switch> ::= '@' '!' <rcchar> '=' <dimen>
   // <rcchar> ::= 'R' | 'C' | <empty>
-  // <mwhlchar> ::= 'M' | 'W' | 'H' | 'L'
+  AST.Command.Xymatrix.Setup.PretendEntrySize = MathJax.Object.Subclass({
+    /**
+     * @param {String} dimen size
+     */
+    Init: function (dimen) {
+      this.dimen = dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.PretendEntrySize.Height = AST.Command.Xymatrix.Setup.PretendEntrySize.Subclass({
+    toString: function () {
+      return "@!R=" + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.PretendEntrySize.Width = AST.Command.Xymatrix.Setup.PretendEntrySize.Subclass({
+    toString: function () {
+      return "@!C=" + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.PretendEntrySize.HeightAndWidth = AST.Command.Xymatrix.Setup.PretendEntrySize.Subclass({
+    toString: function () {
+      return "@!=" + this.dimen;
+    }
+  });
+  
+  // <switch> ::= '@' '!' <rcchar>
+  AST.Command.Xymatrix.Setup.FixGrid = MathJax.Object.Subclass({});
+  AST.Command.Xymatrix.Setup.FixGrid.Row = AST.Command.Xymatrix.Setup.FixGrid.Subclass({
+    toString: function () {
+      return "@!R";
+    }
+  });
+  AST.Command.Xymatrix.Setup.FixGrid.Column = AST.Command.Xymatrix.Setup.FixGrid.Subclass({
+    toString: function () {
+      return "@!C";
+    }
+  });
+  AST.Command.Xymatrix.Setup.FixGrid.RowAndColumn = AST.Command.Xymatrix.Setup.FixGrid.Subclass({
+    toString: function () {
+      return "@!";
+    }
+  });
+  
+  // <switch> ::= '@' ( 'M' | 'W' | 'H' ) <add op> <dimen>
+  // <switch> ::= '@' '1'
+  AST.Command.Xymatrix.Setup.AdjustEntrySize = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.AddOp.*} addop sizing operator
+     * @param {String} dimen size
+     */
+    init: function (addop, dimen) {
+      this.addop = addop;
+      this.dimen = dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.AdjustEntrySize.Margin = AST.Command.Xymatrix.Setup.AdjustEntrySize.Subclass({
+    toString: function () {
+      return "@M" + this.addop + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.AdjustEntrySize.Width = AST.Command.Xymatrix.Setup.AdjustEntrySize.Subclass({
+    toString: function () {
+      return "@W" + this.addop + this.dimen;
+    }
+  });
+  AST.Command.Xymatrix.Setup.AdjustEntrySize.Height = AST.Command.Xymatrix.Setup.AdjustEntrySize.Subclass({
+    toString: function () {
+      return "@H" + this.addop + this.dimen;
+    }
+  });
+  
+  // <switch> ::= '@' 'L' <add op> <dimen>
+  AST.Command.Xymatrix.Setup.AdjustLabelSep = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.AddOp.*} addop sizing operator
+     * @param {String} dimen size
+     */
+    init: function (addop, dimen) {
+      this.addop = addop;
+      this.dimen = dimen;
+    },
+    toString: function () {
+      return "@L" + this.addop + this.dimen;
+    }
+  });
+  
+  // <switch> ::= '@' <nonemptyDirection>
+  AST.Command.Xymatrix.Setup.SetOrientation = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.Direction} direction the orientation of the row
+     */
+    init: function (direction) {
+      this.direction = direction;
+    },
+    toString: function () {
+      return "@" + this.direction;
+    }
+  });
+  
+  // <switch> ::= '@' '*' '[' <shape> ']'
+  AST.Command.Xymatrix.Setup.AddShapeModifier = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.Shape.*} shape  object shape modifier for all entries
+     */
+    init: function (shape) {
+      this.shape = shape;
+    },
+    toString: function () {
+      return "@*" + this.shape;
+    }
+  });
+  
+  // <switch> ::= '@' '*' <add op> <size>
+  AST.Command.Xymatrix.Setup.AddSizeModifier = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Modifier.AddOp.*} addop object resizing modifier for all entries
+     * @param {AST.Modifier.AddOp.{VactorSize, DefaultSize}} size size
+     */
+    init: function (addop, size) {
+      this.addop = addop;
+      this.size = size;
+    },
+    toString: function () {
+      return "@*" + this.addop + this.size;
+    }
+  });
   
   // <rows> ::= <row> ( '\\' <row> )*
   // <row> ::= <entry> ( '&' <entry> )*
   AST.Command.Xymatrix.Row = MathJax.Object.Subclass({
     /**
-     * @param {List[AST.Command.Xymatrix.Entry]} entries entries in the row
+     * @param {List[AST.Command.Xymatrix.Entry.*]} entries entries in the row
      */
     Init: function (entries) {
       this.entries = entries;
@@ -1734,12 +1885,13 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   // <entry> ::= ( '**' '[' <shape> ']' | '**' '{' <modifier>* '}' )* <loose objectbox> <decor>
+  //         |   '*' <object> <pos> <decor>
   // <loose objectbox> ::= <objectbox>
   //                   |   /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
   // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
   //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
   AST.Command.Xymatrix.Entry = MathJax.Object.Subclass({});
-  AST.Command.Xymatrix.Entry = AST.Command.Xymatrix.Entry.Subclass({
+  AST.Command.Xymatrix.Entry.SimpleEntry = AST.Command.Xymatrix.Entry.Subclass({
     Init: function (modifiers, objectbox, decor) {
       this.modifiers = modifiers;
       this.objectbox = objectbox;
@@ -1747,6 +1899,16 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     },
     toString: function () {
       return this.modifiers.mkString("**{", "", "}") + " " + this.objectbox + " " + this.decor;
+    }
+  });
+  AST.Command.Xymatrix.Entry.ObjectEntry = AST.Command.Xymatrix.Entry.Subclass({
+    Init: function (object, pos, decor) {
+      this.object = object;
+      this.pos = pos;
+      this.decor = decor;
+    },
+    toString: function () {
+      return "*" + this.object + " " + this.pos + " " + this.decor;
     }
   });
   
@@ -2923,20 +3085,71 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     
     // <setup> ::= <switch>*
     // <switch> ::= '"' <prefix> '"'
-    //     | '@' <rcchar> <add op> <dimen>
-    //     | '@' '!' <rcchar>
-    //     | '@' '!' <rcchar>? '0'
-    //     | '@' '!' <rcchar>? '=' <dimen>
-    //     | '@' <mwhlchar> <add op> <dimen>
-    //     | '@' <direction>
-    //     | '@' '*' '[' <shape> ']'
-    //     | '@' '*' <add op> <size>
+    //          |   '@' <rcchar> <add op> <dimen>
+    //          |   '@' '!' <rcchar> '0'
+    //          |   '@' '!' <rcchar> '=' <dimen>
+    //          |   '@' '!' <rcchar>
+    //          |   '@' ( 'M' | 'W' | 'H' ) <add op> <dimen>
+    //          |   '@' '1'
+    //          |   '@' 'L' <add op> <dimen>
+    //          |   '@' <nonemptyDirection>
+    //          |   '@' '*' '[' <shape> ']'
+    //          |   '@' '*' <add op> <size>
     // <rcchar> ::= 'R' | 'C' | <empty>
     // <mwhlchar> ::= 'M' | 'W' | 'H' | 'L'
     setup: memo(function () {
       return rep(fun(or(
         regex(/^"([^"]+)"/).to(function (p) {
           return AST.Command.Xymatrix.Setup.Prefix(p.substring(1, p.length - 1));
+        }),
+        lit("@").andr(fun(
+          or(
+            elem("R").to(function () { return AST.Command.Xymatrix.Setup.ChangeSpacing.Row; }),
+            elem("C").to(function () { return AST.Command.Xymatrix.Setup.ChangeSpacing.Column; }),
+            success("both").to(function () { return AST.Command.Xymatrix.Setup.ChangeSpacing.RowAndColumn; })
+          )
+        )).and(p.addop).and(p.dimen).to(function (cod) {
+          return cod.head.head(cod.head.til, cod.tail);
+        }),
+        lit("@!").andr(fun(
+          or(
+            elem("R").to(function () { return AST.Command.Xymatrix.Setup.PretendEntrySize.Height; }),
+            elem("C").to(function () { return AST.Command.Xymatrix.Setup.PretendEntrySize.Width; }),
+            success("both").to(function () { return AST.Command.Xymatrix.Setup.PretendEntrySize.HeightAndWidth; })
+          )
+        )).and(fun(
+          or(
+            elem("0").to(function() { return "0em"; }),
+            elem("=").andr(p.dimen)
+          )
+        )).to(function (cd) {
+          return cd.head(cd.tail);
+        }),
+        lit("@!").andr(fun(
+          or(
+            elem("R").to(function () { return AST.Command.Xymatrix.Setup.FixGrid.Row(); }),
+            elem("C").to(function () { return AST.Command.Xymatrix.Setup.FixGrid.Column(); }),
+            success("both").to(function () { return AST.Command.Xymatrix.Setup.FixGrid.RowAndColumn(); })
+          )
+        )),
+        lit("@").andr(fun(
+          or(
+            elem("M").to(function () { return AST.Command.Xymatrix.Setup.AdjustEntrySize.Margin; }),
+            elem("W").to(function () { return AST.Command.Xymatrix.Setup.AdjustEntrySize.Width; }),
+            elem("H").to(function () { return AST.Command.Xymatrix.Setup.AdjustEntrySize.Height; }),
+            elem("L").to(function () { return AST.Command.Xymatrix.Setup.AdjustLabelSep; })
+          )
+        )).and(p.addop).and(p.dimen).to(function (cod) {
+          return cod.head.head(cod.head.til, cod.tail);
+        }),
+        lit("@").andr(p.nonemptyDirection).to(function (d) {
+          return AST.Command.Xymatrix.Setup.SetOrientation(d);
+        }),
+        lit("@*[").andr(p.shape).andl(flit("]")).to(function (s) {
+          return AST.Command.Xymatrix.Setup.AddShapeModifier(s);
+        }),
+        lit("@*").andr(p.addop).and(p.size).to(function (os) {
+          return AST.Command.Xymatrix.Setup.AddSizeModifier(os.head, os.tail);
         })
       )));
     }),
@@ -2955,11 +3168,23 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       })
     }),
     
-    // <entry> ::= <entry modifier>* <loose objectbox> <decor>
+    // <entry> ::= '*' <object> <pos> <decor>
+    //         |   <entry modifier>* <loose objectbox> <decor>
     entry: memo(function () {
-      return p.entryModifier().rep().and(p.looseObjectbox).and(p.decor).to(function (mod) {
-        return AST.Command.Xymatrix.Entry(mod.head.head, mod.head.tail, mod.tail);
-      })
+      return or(
+        lit("*").andr(p.object).and(p.pos).and(p.decor).to(function (opd) {
+          var obj = opd.head.head;
+          var pos = opd.head.tail;
+          var decor = opd.tail;
+          return AST.Command.Xymatrix.Entry.ObjectEntry(obj.modifiers, obj.object, pos, decor);
+        }),
+        p.entryModifier().rep().and(p.looseObjectbox).and(p.decor).to(function (mopd) {
+          var modifiers = mopd.head.head;
+          var objbox = mopd.head.tail;
+          var decor = mopd.tail;
+          return AST.Command.Xymatrix.Entry.SimpleEntry(modifiers, objbox, decor);
+        })
+      );
     }),
     
     // <entry modifier> ::= '**' '[' <shape> ']' | '**' '{' <modifier>* '}'
