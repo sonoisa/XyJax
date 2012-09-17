@@ -107,7 +107,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   MathJax.Hub.Insert(TEXDEF, {
     macros: {
       //hole: ['Macro', '{\\bbox[3pt]{}}']
-      hole: ['Macro', '{\\style{visibility:hidden}{x}}']
+      hole: ['Macro', '{\\style{visibility:hidden}{x}}'],
+      xybox: 'Xybox',
+      xymatrix: 'Xymatrix'
     },
     environment: {
       xy: ['ExtensionEnv', null, 'XYpic']
@@ -2025,6 +2027,22 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       });
     }),
     
+    // \xyboxの後の
+    // '{' <pos-decor> '}'
+    xybox: memo(function () {
+      return lit("{").andr(p.posDecor).andl(flit("}")).to(function (pd) {
+        return pd;
+      });
+    }),
+    
+    // \xymatrixの後の
+    // <xymatrix>
+    xymatrixbox: memo(function () {
+      return p.xymatrix().to(function (m) {
+        return AST.PosDecor(AST.Pos.Coord(AST.Coord.C(), FP.List.empty), AST.Decor(FP.List.empty.append(m)));
+      });
+    }),
+    
     // <pos-decor> ::= <pos> <decor>
     posDecor: memo(function () {
       return seq(p.pos, p.decor).to(function (pd) {
@@ -3414,6 +3432,54 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       }
       
       return begin;
+    },
+    
+    /**
+     * Handle xybox
+     */
+    Xybox: function () {
+      try {
+        var parseContext = { lastNoSuccess: undefined };
+        var input = FP.StringReader(this.string, this.i, parseContext);
+        var result = FP.Parsers.parse(p.xybox(), input);
+        this.i = result.next.offset;
+      } catch (e) {
+        throw e;
+      }
+      
+      if (result.successful) {
+        if (supportGraphics) {
+          this.Push(AST.xypic(result.result));
+        } else {
+          this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
+        }
+      } else {
+        throw xypic.ParseError(parseContext.lastNoSuccess);
+      }
+    },
+    
+    /**
+     * Handle xymatrix
+     */
+    Xymatrix: function () {
+      try {
+        var parseContext = { lastNoSuccess: undefined };
+        var input = FP.StringReader(this.string, this.i, parseContext);
+        var result = FP.Parsers.parse(p.xymatrixbox(), input);
+        this.i = result.next.offset;
+      } catch (e) {
+        throw e;
+      }
+      
+      if (result.successful) {
+        if (supportGraphics) {
+          this.Push(AST.xypic(result.result));
+        } else {
+          this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
+        }
+      } else {
+        throw xypic.ParseError(parseContext.lastNoSuccess);
+      }
     }
   });
   
