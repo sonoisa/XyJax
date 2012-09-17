@@ -106,7 +106,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   
   MathJax.Hub.Insert(TEXDEF, {
     macros: {
-      hole: ['Macro', '{\\bbox[3pt]{}}']
+      //hole: ['Macro', '{\\bbox[3pt]{}}']
+      hole: ['Macro', '{\\style{visibility:hidden}{x}}']
     },
     environment: {
       xy: ['ExtensionEnv', null, 'XYpic']
@@ -662,17 +663,34 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   });
   
   // <objectbox>
-  AST.ObjectBox = MathJax.Object.Subclass({});
+  AST.ObjectBox = MathJax.Object.Subclass({
+    dirVariant: function () { return undefined; },
+    dirMain: function () { return undefined; },
+    isDir: function () { return false; },
+    isEmpty: false
+  });
   // <objectbox> ::= '{' <text> '}'
   // <objectbox> ::= <TeX box> '{' <text> '}'
   AST.ObjectBox.Text = AST.ObjectBox.Subclass({
     Init: function (math) {
       this.math = math;
     },
-    dirVariant: function () { return undefined; },
-    dirMain: function () { return undefined; },
-    isDir: function () { return false; },
     toString: function () { return "{" + this.math.toString() + "}"; }
+  });
+  AST.ObjectBox.Empty = AST.ObjectBox.Subclass({
+    isEmpty: true,
+    toString: function () { return "{}"; }
+  });
+  
+  // <objectbox> ::= 'xymatrix' <xymatrix>
+  AST.ObjectBox.Xymatrix = AST.ObjectBox.Subclass({
+    /**
+     * @param {AST.Command.Xymatrix} xymatrix xymatrix
+     */
+    Init: function (xymatrix) {
+      this.xymatrix = xymatrix;
+    },
+    toString: function () { return this.xymatrix.toString(); }
   });
   
   // <objectbox> ::= '\txt' <width> <style> '{' <text> '}'
@@ -1938,6 +1956,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.objectbox = objectbox;
       this.decor = decor;
     },
+    isEmpty: false,
     toString: function () {
       return this.modifiers.mkString("**{", "", "}") + " " + this.objectbox + " " + this.decor;
     }
@@ -1953,8 +1972,21 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.pos = pos;
       this.decor = decor;
     },
+    isEmpty: false,
     toString: function () {
       return "*" + this.object + " " + this.pos + " " + this.decor;
+    }
+  });
+  AST.Command.Xymatrix.Entry.EmptyEntry = AST.Command.Xymatrix.Entry.Subclass({
+    /**
+     * @param {AST.Decor} decor decoration
+     */
+    Init: function (decor) {
+      this.decor = decor;
+    },
+    isEmpty: true,
+    toString: function () {
+      return "" + this.decor;
     }
   });
   
@@ -2289,6 +2321,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //          | '\object' <object>
     //          | '\composite' '{' <composite_object> '}'
     //          | '\xybox' '{' <pos> <decor> '}'
+    //          | '\xymatrix' <xymatrix>
     //          | <curve>
     //          | <TeX box> '{' <text> '}'
     objectbox: memo(function () {
@@ -2310,6 +2343,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         lit("\\xybox").and(flit("{")).andr(p.posDecor).andl(flit("}")).to(function (pd) {
           return AST.ObjectBox.Xybox(pd);
+        }),
+        lit("\\xymatrix").andr(p.xymatrix).to(function (m) {
+          return AST.ObjectBox.Xymatrix(m);
         }),
         p.txt,
         p.curve,
@@ -3228,7 +3264,14 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     // <rows> ::= <row> ( '\\' <row> )*
     rows: memo(function () {
       return p.row().and(fun(rep(lit("\\\\").andr(p.row)))).to(function (rrs) {
-        return rrs.tail.prepend(rrs.head);
+        var rows = rrs.tail.prepend(rrs.head);
+        if (!rows.isEmpty) {
+          var lastRow = rows.at(rows.length() - 1);
+          if (lastRow.entries.length() === 1 && lastRow.entries.at(0).isEmpty) {
+            rows = rows.reverse().tail.reverse();
+          }
+        }
+        return rows;
       })
     }),
     
@@ -3253,8 +3296,12 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           var modifiers = mopd.head.head.foldLeft(FP.List.empty, function (tmpMs, ms) {
             return ms.concat(tmpMs);
           });
-          var objbox = mopd.head.tail;
+          var isEmpty = mopd.head.tail.isEmpty;
+          var objbox = mopd.head.tail.object;
           var decor = mopd.tail;
+          if (isEmpty && modifiers.isEmpty) {
+            return AST.Command.Xymatrix.Entry.EmptyEntry(decor);
+          }
           return AST.Command.Xymatrix.Entry.SimpleEntry(modifiers, objbox, decor);
         })
       );
@@ -3276,7 +3323,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
     looseObjectbox: memo(function () {
       return or(
-        p.objectbox,
+        p.objectbox().to(function (o) { return {
+          isEmpty:false, object:o
+        } }),
         regex(/^[^\\{}&]+/).opt().to(function (rs) { return rs.getOrElse(""); }).and(fun(
           rep(
             or(
@@ -3295,8 +3344,12 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
             })
           ).to(function (cs) { return cs.mkString("") })
         )).to(function (tt) {
-          var text = (tt.head + tt.tail).trim();
-          return p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+          var text = tt.head + tt.tail;
+          var isEmpty = (text.trim().length === 0);
+          var object = p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+          return {
+            isEmpty:isEmpty, object:object
+          };
         })
       )
     })
@@ -4345,12 +4398,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var xm0 = xm;
         var ym0 = eps * (ym - cy) + cy;
         
-        var dxp = xp0 - x;
-        var dyp = yp0 - y;
-        var dxm = xm0 - x;
-        var dym = ym0 - y;
+        var sign = xypic.Util.sign;
         
-        if (dxp * dxp + dyp * dyp < dxm * dxm + dym * dym) {
+        if (sign(xp0 - cx) === sign(x - cx) && sign(yp0 - cy) === sign(y - cy)) {
           return xypic.Frame.Point(xp0, yp0);
         } else {
           return xypic.Frame.Point(xm0, ym0);
@@ -4418,7 +4468,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var dxm = xm0 - x;
         var dym = ym0 - y;
         
-        if (dxp * dxp + dyp * dyp < dxm * dxm + dym * dym) {
+        if (sign(xp0 - cx) === sign(x - cx) && sign(yp0 - cy) === sign(y - cy)) {
           return xypic.Frame.Point(xm0, ym0);
         } else {
           return xypic.Frame.Point(xp0, yp0);
@@ -10601,6 +10651,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  AST.ObjectBox.Xymatrix.Augment({
+    toDropShape: function (context) {
+      return this.xymatrix.toShape(context);
+    }
+  });
+  
   AST.ObjectBox.Text.Augment({
     toDropShape: function (context) {
       var textShape = xypic.Shape.TextShape(context.env.c, this.math, svgForTestLayout);
@@ -10609,6 +10665,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return textShape;
     }
   });
+  
+  AST.ObjectBox.Empty.Augment({
+    toDropShape: function (context) {
+      var env = context.env;
+      env.c = xypic.Frame.Point(env.c.x, env.c.y);
+      return xypic.Shape.none;
+    }
+  });
+
   
   AST.ObjectBox.Txt.Augment({
     toDropShape: function (context) {
@@ -13144,6 +13209,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       
       this.setup.foreach(function (sw) { sw.toShape(subcontext); });
       
+      var orientation = subEnv.xymatrixOrientationAngle;
+      
       var rowCount;
       var columnCount = 0;
       var rownum = 0, colnum;
@@ -13183,11 +13250,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               }
               var frame = xypic.Frame.Rect(0, 0, { l:l, r:r, u:u, d:d });
               return xypic.Xymatrix.Entry(localEnv.c, shape, entry.decor, frame);
-            })
+            }),
+            orientation
           );
           columnCount = Math.max(columnCount, colnum);
           return rowModel;
-        })
+        }),
+        orientation
       );
       rowCount = rownum;
       
@@ -13278,8 +13347,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       origEnv.c = xypic.Frame.Rect(origEnv.c.x, origEnv.c.y, { l:l, r:r, u:u, d:d });
       
       var prefix = subEnv.xymatrixPrefix;
-      var cos = Math.cos(subEnv.xymatrixOrientationAngle);
-      var sin = Math.sin(subEnv.xymatrixOrientationAngle);
+      var cos = Math.cos(orientation);
+      var sin = Math.sin(orientation);
       var rowIndex = 0;
       matrix.rows.foreach(function (row) {
         colIndex = 0;
@@ -13329,15 +13398,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   // xymatrix data models
   xypic.Xymatrix = MathJax.Object.Subclass({
-    Init: function (rows) {
+    Init: function (rows, orientation) {
       this.rows = rows;
       this.columns = FP.List.empty;
+      this.orientation = orientation;
     },
     getColumn: function (colnum /* >= 1 */) {
       if (this.columns.length() >= colnum) {
         return this.columns.at(colnum - 1);
       } else {
-        var column = xypic.Xymatrix.Column();
+        var column = xypic.Xymatrix.Column(this.orientation);
         this.columns = this.columns.append(column);
         return column;
       }
@@ -13347,17 +13417,22 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   xypic.Xymatrix.Row = MathJax.Object.Subclass({
-    Init: function (entries) {
+    Init: function (entries, orientation) {
       this.entries = entries;
+      this.orientation = orientation;
+      memoize(this, "getU");
+      memoize(this, "getD");
     },
     getU: function () {
+      var orientation = this.orientation;
       var maxU = 0;
-      this.entries.foreach(function (e) { maxU = Math.max(maxU, e.getU()); })
+      this.entries.foreach(function (e) { maxU = Math.max(maxU, e.getU(orientation)); })
       return maxU;
     },
     getD: function () {
+      var orientation = this.orientation;
       var maxD = 0;
-      this.entries.foreach(function (e) { maxD = Math.max(maxD, e.getD()); })
+      this.entries.foreach(function (e) { maxD = Math.max(maxD, e.getD(orientation)); })
       return maxD;
     },
     toString: function () {
@@ -13365,20 +13440,27 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   xypic.Xymatrix.Column = MathJax.Object.Subclass({
-    Init: function () {
+    Init: function (orientation) {
       this.entries = FP.List.empty;
+      this.orientation = orientation;
+      memoize(this, "getL");
+      memoize(this, "getR");
     },
     addEntry: function (entry) {
       this.entries = this.entries.append(entry);
+      this.getL.reset;
+      this.getR.reset;
     },
     getL: function () {
+      var orientation = this.orientation;
       var maxL = 0;
-      this.entries.foreach(function (e) { maxL = Math.max(maxL, e.getL()); })
+      this.entries.foreach(function (e) { maxL = Math.max(maxL, e.getL(orientation)); })
       return maxL;
     },
     getR: function () {
+      var orientation = this.orientation;
       var maxR = 0;
-      this.entries.foreach(function (e) { maxR = Math.max(maxR, e.getR()); })
+      this.entries.foreach(function (e) { maxR = Math.max(maxR, e.getR(orientation)); })
       return maxR;
     },
     toString: function () {
@@ -13392,17 +13474,35 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.decor = decor;
       this.frame = frame;
     },
-    getU: function () {
-      return this.frame.u;
+    getDistanceToEdgePoint: function (frame, angle) {
+      var edgePoint = frame.edgePoint(frame.x + Math.cos(angle), frame.y + Math.sin(angle));
+      var dx = edgePoint.x - frame.x;
+      var dy = edgePoint.y - frame.y;
+      return Math.sqrt(dx * dx + dy * dy);
     },
-    getD: function () {
-      return this.frame.d;
+    getU: function (orientation) {
+      if (orientation === 0) {
+        return this.frame.u;
+      }
+      return this.getDistanceToEdgePoint(this.frame, orientation + Math.PI / 2);
     },
-    getL: function () {
-      return this.frame.l;
+    getD: function (orientation) {
+      if (orientation === 0) {
+        return this.frame.d;
+      }
+      return this.getDistanceToEdgePoint(this.frame, orientation - Math.PI / 2);
     },
-    getR: function () {
-      return this.frame.r;
+    getL: function (orientation) {
+      if (orientation === 0) {
+        return this.frame.l;
+      }
+      return this.getDistanceToEdgePoint(this.frame, orientation + Math.PI);
+    },
+    getR: function (orientation) {
+      if (orientation === 0) {
+        return this.frame.r;
+      }
+      return this.getDistanceToEdgePoint(this.frame, orientation);
     },
     toString: function () {
       return this.objectShape.toString() + " " + this.decor;
@@ -13530,6 +13630,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       )));
       var modifiers = this.modifiers.concat(env.xymatrixEntryModifiers).prepend(defaultSizeModifier);
       return AST.Object(modifiers, this.objectbox).toDropShape(context);
+    }
+  });
+  
+  AST.Command.Xymatrix.Entry.EmptyEntry.Augment({
+    toShape: function (context) {
+      var env = context.env;
+      var defaultWidth = "" + (env.objectmargin + env.objectwidth) + "em";
+      var defaultHeight = "" + (env.objectmargin + env.objectheight) + "em";
+      var defaultSizeModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.GrowTo(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
+        defaultWidth, defaultHeight
+      )));
+      var modifiers = env.xymatrixEntryModifiers.prepend(defaultSizeModifier);
+      return AST.Object(modifiers, AST.ObjectBox.Empty()).toDropShape(context);
     }
   });
   
