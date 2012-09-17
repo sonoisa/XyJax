@@ -28,6 +28,76 @@
 <hr>
 <p>
 
+\[
+\begin{xy}
+\xymatrix @W=3pc @H=1pc @R=0pc @*[F-] {
+: \save+<-4pc,1pc>*{\it root}
+    \ar[]
+  \restore \\
+{\bullet}
+  \save*{}
+    \ar `r[dd]+/r4pc/ `[dd] [dd]
+  \restore \\
+{\bullet}
+  \save*{}
+    \ar `r[d]+/r3pc/ `[d]+/d2pc/ `[uu]+/l3pc/ `[uu] [uu]
+  \restore \\
+1
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xymatrix @!=1pc @1 {
+**[l] A\times B \ar[r]^{/A} \ar[d]_{/B} & B \ar[d]^{\times A} \\
+A \ar[r]_{B\times} & **[r] B\times A
+}
+\end{xy}
+\]
+
+
+\[
+\begin{xy}
+\xymatrix"*"{A&B\\C&D}
+\POS *\frm{--}
+\POS-(10,3)
+\xymatrix{
+A' \ar@{.}["*"] & B' \ar@{.}["*"] \\
+C' \ar@{.}["*"] & D' \ar@{.}["*"]
+}
+\POS*\frm{--}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xymatrix @1 {
+{\mathscr{C}} & 
+  a \ar[r]^f \ar[dr]_{g \circ f} & 
+  b \ar[d]^g & 
+  \ar@{~>}[r]^F & &
+  Fa \ar[r]^{Ff} \ar[dr]_*[l]{\scriptstyle F(g\circ f) = Fg\circ Ff} & 
+  Fb \ar[d]^{Fg} & {\mathscr{D}} \\
+&& c & \ar@{~>}[r]^F &&& Fc
+}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+\xymatrix @*[F-] @*[o] @*+ @*+ {
+*\txt{start} \ar[r]
+ & 0 \ar@(r,u)[]^b \ar[r]_a
+ & 1 \ar[r]^b \ar@(r,d)[]_a
+ & 2 \ar[r]^b
+  \ar `dr_l[l] `_ur[l] _(.2)a[l]
+ & *++[o][F=]{3}
+  \ar `ur^l[lll] `^dr[lll]^b [lll]
+  \ar `dr_l[ll] `_ur[ll] [ll]
+}
+\end{xy}
+\]
 
 \[
 \begin{xy}

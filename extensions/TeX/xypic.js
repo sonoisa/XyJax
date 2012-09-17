@@ -114,7 +114,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
-  // パースエラーを表示できるよう、エラー処理をoverrideする。
+  // override MathJax.InputJax.TeX.formatError function to display parse error.
   var tex_formatError = TEX.formatError;
   TEX.formatError = function (err, math, displaystyle, script) {
     if (err.xyjaxError !== undefined) {
@@ -439,7 +439,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.dc = dc;
     },
     toString: function () {
-      return '["' + this.prefix + '"' + this.dr + "," + this.dc + "]";
+      return '[' + (this.prefix === ''? '' : '"' + this.prefix + '"') + this.dr + "," + this.dc + "]";
     }
   });
   // coordinate for xymatrix
@@ -454,7 +454,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.hops = hops;
     },
     toString: function () {
-      return '["' + this.prefix + '"' + this.hops + "]";
+      return '[' + (this.prefix === ''? '' : '"' + this.prefix + '"') + this.hops.mkString("") + "]";
     }
   });
   // coordinate for xymatrix
@@ -471,7 +471,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.place = place;
     },
     toString: function () {
-      return '["' + this.prefix + '"' + this.hops + this.place + "]";
+      return '[' + (this.prefix === ''? '' : '"' + this.prefix + '"') + this.hops.mkString("") + this.place + "]";
     }
   });
   
@@ -3235,9 +3235,6 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
             case "L": return AST.Command.Xymatrix.Setup.AdjustLabelSep(addop, dimen);
           }
         }),
-        lit("@1").to(function () {
-          return AST.Command.Xymatrix.Setup.AdjustEntrySize.Margin(AST.Modifier.AddOp.Set(), "1pc");
-        }),
         lit("@").andr(p.nonemptyDirection).to(function (d) {
           return AST.Command.Xymatrix.Setup.SetOrientation(d);
         }),
@@ -3257,6 +3254,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
             case "C": return AST.Command.Xymatrix.Setup.ChangeSpacing.Column(addop, dimen);
             default: return AST.Command.Xymatrix.Setup.ChangeSpacing.RowAndColumn(addop, dimen);
           }
+        }),
+        lit("@1").to(function () {
+          return AST.Command.Xymatrix.Setup.AdjustEntrySize.Margin(AST.Modifier.AddOp.Set(), "1pc");
         })
       )));
     }),
@@ -3395,7 +3395,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
      */
     XY: function(begin) {
       try {
-        var input = FP.StringReader(this.string, this.i);
+        var parseContext = { lastNoSuccess: undefined };
+        var input = FP.StringReader(this.string, this.i, parseContext);
         var result = FP.Parsers.parse(p.xy(), input);
         this.i = result.next.offset;
       } catch (e) {
@@ -3409,7 +3410,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
         }
       } else {
-        throw xypic.ParseError(result);
+        throw xypic.ParseError(parseContext.lastNoSuccess);
       }
       
       return begin;
@@ -3467,6 +3468,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   var XLINKNS = "http://www.w3.org/1999/xlink";
   var VMLNS = "urn:schemas-microsoft-com:vml";
   var vmlns = "mjxvml";
+  
+  // override MathJax.Hub.formatError function to display runtime error.
+  var hub_formatError = HUB.formatError;
+  HUB.formatError = function (script, err) {
+    if (err.xyjaxError !== undefined) {
+      var origMessage = HUB.config.errorSettings.message;
+      HUB.config.errorSettings.message = "[" + err.message + "]";
+      hub_formatError.apply(HUB, [script, err]);
+      HUB.config.errorSettings.message = origMessage;
+    } else {
+      hub_formatError.apply(HUB, [script, err]);
+    }
+  }
 
   var em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
   
@@ -3945,15 +3959,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (xypicData) {
           var env = xypic.Env();
           
-          try{
-            var context = xypic.DrawingContext(xypic.Shape.none, env);
-            xypicData.toShape(context);
-            var shape = context.shape;
-            shape.draw(svg);
-          } catch (e) {
-            console.log(e);
-            throw e;
-          }
+          var context = xypic.DrawingContext(xypic.Shape.none, env);
+          xypicData.toShape(context);
+          var shape = context.shape;
+          shape.draw(svg);
           
           var box = shape.getBoundingBox();
           if (box !== undefined) {
@@ -4233,7 +4242,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         u = height * this.u / oh;
         d = height * this.d / oh;
       }
-      
       return this.toRect({ l:l, r:r, u:u, d:d });
     },
     growTo: function (width, height) {
@@ -4261,7 +4269,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           d = height * this.d / oh;
         }
       }
-      
       return this.toRect({ l:l, r:r, u:u, d:d });
     },
     shrinkTo: function (width, height) {
@@ -10074,10 +10081,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     stackAt: function (number) {
       return this.stack.at(number);
     },
-    lookupPos: function (id) {
+    lookupPos: function (id, errorMessage) {
       var pos = this.savedPosition[id];
       if (pos === undefined) {
-        throw xypic.ExecutionError('id "' + id + '" not found');
+        if (errorMessage !== undefined) {
+          throw xypic.ExecutionError(errorMessage);
+        } else {
+          throw xypic.ExecutionError('<pos> "' + id + '" not defined.');
+        }
       } else {
         return pos;
       }
@@ -11626,7 +11637,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         throw xypic.ExecutionError("xymatrix rows and columns not found for " + this.toSring());
       }
       var id = this.prefix + (row + this.dr) + "," + (col + this.dc);
-      return context.env.lookupPos(id).position(context);
+      return context.env.lookupPos(id, 'in entry "' + env.xymatrixRow + "," + env.xymatrixCol + '": No ' + this + " (is " + id + ") from here.").position(context);
     }
   });
   
@@ -11655,7 +11666,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       });
       var id = this.prefix + row + "," + col;
-      return context.env.lookupPos(id).position(context);
+      return context.env.lookupPos(id, 'in entry "' + env.xymatrixRow + "," + env.xymatrixCol + '": No ' + this + " (is " + id + ") from here.").position(context);
     }
   });
   
@@ -11684,7 +11695,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         }
       });
       var id = this.prefix + row + "," + col;
-      var pos = context.env.lookupPos(id).position(context);
+      var pos = context.env.lookupPos(id, 'in entry "' + env.xymatrixRow + "," + env.xymatrixCol + '": No ' + this + " (is " + id + ") from here.").position(context);
       var c = env.c;
       
       var tmpEnv = env.duplicate();
@@ -13391,6 +13402,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
       var matrixShape = subcontext.shape;
       context.appendShapeToFront(matrixShape);
+      origEnv.savedPosition = subEnv.savedPosition;
       
       return matrixShape;
     }

@@ -361,9 +361,10 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
 
   /************ StringReader **************/
   FP.StringReader = MathJax.Object.Subclass({
-    Init: function (source, offset) {
+    Init: function (source, offset, context) {
       this.source = source;
-      if (offset === undefined) { this.offset = 0; } else { this.offset = offset; }	
+      this.offset = offset;
+      this.context = context;
     },
     first: function () {
       if (this.offset < this.source.length) {
@@ -374,7 +375,7 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
     },
     rest: function () {
       if (this.offset < this.source.length) {
-        return FP.StringReader(this.source, this.offset + 1);
+        return FP.StringReader(this.source, this.offset + 1, this.context);
       } else {
         return this;
       }
@@ -405,11 +406,11 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
       return p.andl(function () { return FP.Parsers.eos(); }).apply(input);
     },
     parseString: function (p, str) {
-      var input = FP.StringReader(str);
+      var input = FP.StringReader(str, 0, { lastNoSuccess: undefined });
       return FP.Parsers.parse(p, input);
     },
     parseAllString: function (p, str) {
-      var input = FP.StringReader(str);
+      var input = FP.StringReader(str, 0, { lastNoSuccess: undefined });
       return FP.Parsers.parseAll(p, input);
     },
     whiteSpaceRegex: /^\s+/,
@@ -770,6 +771,12 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
   /************ NoSuccess **************/
   FP.Parsers.NoSuccess = FP.Parsers.ParseResult.Subclass({
     Init: function () {},
+    _setLastNoSuccess: function () {
+      var context = this.next.context;
+      if (context.lastNoSuccess === undefined || !this.next.pos().isLessThan(context.lastNoSuccess.next.pos())) {
+        context.lastNoSuccess = this;
+      }
+    },
     map: function (f) { return this; },
     mapPartial: function (f, error) { return this; },
     flatMapWithNext: function (f) { return this; },
@@ -783,6 +790,7 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
     Init: function (msg, next) {
       this.msg = msg;
       this.next = next;
+      this._setLastNoSuccess();
     },
     append: function (/*lazy*/ a) {
       var alt = a();
@@ -810,6 +818,7 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
     Init: function (msg, next) {
       this.msg = msg;
       this.next = next;
+      this._setLastNoSuccess();
     },
     append: function (/*lazy*/ a) { return this; },
     toString: function () { return ('[' + this.next.pos() + '] error: ' + 
