@@ -26,21 +26,17 @@
 
 <blockquote>
 
-<h1>XyJax Test Page</h1>
+<h1>XyJax Sample Page</h1>
 <hr>
 <p>
 
 \[
 \begin{xy}
-<0em,0em>*+{X \times Y}="xy", <5em,0em>*+{X}="x", 
-<0em,-5em>*+{Y}="y", <5em,-5em>*+{Z}="z", <-4em,4em>*+{U}="u",
-"xy";"x" **@{-} ?>*@{>} ?<>(.5)*!/^0.5em/{\scriptstyle p},
-"xy";"y" **@{-} ?>*@{>} ?<>(.5)*!/_0.5em/{\scriptstyle q},
-"x";"z" **@{-} ?>*@{>} ?<>(.5)*!/^0.5em/{\scriptstyle f},
-"y";"z" **@{-} ?>*@{>} ?<>(.5)*!/_0.5em/{\scriptstyle g},
-"u";"xy" **@{--} ?>*@{>},
-"u";"y" **\crv{<-3em,-2em>} ?>*@{>} ?<>(.5)*!/^0.5em/{y},
-"u";"x" **\crv{<2em,3em>} ?>*@{>} ?<>(.5)*!/_0.5em/{x}
+\xymatrix {
+U \ar@/_/[ddr]_y \ar@{.>}[dr]|{\langle x,y \rangle} \ar@/^/[drr]^x \\
+ & X \times_Z Y \ar[d]^q \ar[r]_p & X \ar[d]_f \\
+ & Y \ar[r]^g & Z
+}
 \end{xy}
 \]
 
