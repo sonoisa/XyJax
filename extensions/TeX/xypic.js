@@ -13706,7 +13706,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var defaultSizeModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.GrowTo(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         defaultWidth, defaultHeight
       )));
-      var modifiers = this.modifiers.concat(env.xymatrixEntryModifiers).prepend(defaultSizeModifier);
+      var margin = "" + env.objectmargin + "em";
+      var marginModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.Grow(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
+        margin, margin
+      )));
+      var modifiers = this.modifiers.concat(env.xymatrixEntryModifiers).prepend(defaultSizeModifier).prepend(marginModifier);
       return AST.Object(modifiers, this.objectbox).toDropShape(context);
     }
   });
@@ -13719,7 +13723,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var defaultSizeModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.GrowTo(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         defaultWidth, defaultHeight
       )));
-      var modifiers = env.xymatrixEntryModifiers.prepend(defaultSizeModifier);
+      var margin = "" + env.objectmargin + "em";
+      var marginModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.Grow(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
+        margin, margin
+      )));
+      var modifiers = env.xymatrixEntryModifiers.prepend(defaultSizeModifier).prepend(marginModifier);
       return AST.Object(modifiers, AST.ObjectBox.Empty()).toDropShape(context);
     }
   });

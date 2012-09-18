@@ -29,7 +29,7 @@
 <p>
 
 \[
-\xymatrix@1{
+\xymatrix {
 & x \ar[r] \ar[d]^\alpha &
 y \ar[r] \ar[d]^\beta &
 z \ar[r] \ar[d]^\gamma &
@@ -38,7 +38,6 @@ z \ar[r] \ar[d]^\gamma &
 }
 \]
 
-<!--
 \[
 \begin{xy}
 \xymatrix @W=3pc @H=1pc @R=0pc @*[F-] {
@@ -60,7 +59,7 @@ z \ar[r] \ar[d]^\gamma &
 
 \[
 \begin{xy}
-\xymatrix @!=1pc @1 {
+\xymatrix @!=1pc {
 **[l] A\times B \ar[r]^{/A} \ar[d]_{/B} & B \ar[d]^{\times A} \\
 A \ar[r]_{B\times} & **[r] B\times A
 }
@@ -83,7 +82,7 @@ C' \ar@{.}["*"] & D' \ar@{.}["*"]
 
 \[
 \begin{xy}
-\xymatrix @1 {
+\xymatrix {
 {\mathscr{C}} & 
   a \ar[r]^f \ar[dr]_{g \circ f} & 
   b \ar[d]^g & 
@@ -97,11 +96,11 @@ C' \ar@{.}["*"] & D' \ar@{.}["*"]
 
 \[
 \begin{xy}
-\xymatrix @*[F-] @*[o] @*+ @*+ {
+\xymatrix {
 *\txt{start} \ar[r]
- & 0 \ar@(r,u)[]^b \ar[r]_a
- & 1 \ar[r]^b \ar@(r,d)[]_a
- & 2 \ar[r]^b
+ & *++[o][F-]{0} \ar@(r,u)[]^b \ar[r]_a
+ & *++[o][F-]{1} \ar[r]^b \ar@(r,d)[]_a
+ & *++[o][F-]{2} \ar[r]^b
   \ar `dr_l[l] `_ur[l] _(.2)a[l]
  & *++[o][F=]{3}
   \ar `ur^l[lll] `^dr[lll]^b [lll]
@@ -112,7 +111,7 @@ C' \ar@{.}["*"] & D' \ar@{.}["*"]
 
 \[
 \begin{xy}
-\xymatrix@1@R=1pc{
+\xymatrix @R=1pc {
 \zeta \ar@{|->} [dd] \ar@{.>}_\theta [rd] \ar@/^/^\psi [rrd] \\
  & \xi \ar@{|->} [dd] \ar_\phi [r] & \eta \ar@{|->} [dd] \\
  P_{F}\zeta \ar_t [rd] \ar@/^/ [rrd]|!{[ru];[rd]}{\hole} \\
@@ -123,7 +122,7 @@ C' \ar@{.}["*"] & D' \ar@{.}["*"]
 
 \[
 \begin{xy}
-\xymatrix@1{
+\xymatrix {
 U \ar@/_/[ddr]_y \ar@{.>}[dr]|{\langle x,y \rangle} \ar@/^/[drr]^x \\
  & X \times_Z Y \ar[d]^q \ar[r]_p & X \ar[d]_f \\
  & Y \ar[r]^g & Z
