@@ -49,7 +49,11 @@ But, this software is under development, so this release is alpha-quality (often
 4. Open [MathJax dir]/test/sample-xyjax.html with Firefox/Safari/Chrome.
  + If XyJax works, You can see so-called commutative diagram like this:
  
+<<<<<<< HEAD
    ![commutative diagram](http://sonoisa.github.com/xyjax/xyjax_images/CD.png )
+=======
+   ![commutative diagram](http://sonoisa.github.com/xyjax/xyjax_images/CD2.png)
+>>>>>>> updated sample image.
 
 5. Install MathJax on your own server using the source code you created in step 3.
  - Follow the local installation instructions: http://www.mathjax.org/docs/2.0/installation.html
