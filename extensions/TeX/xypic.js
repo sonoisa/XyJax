@@ -1992,6 +1992,215 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // <command> ::= <twocell> <twocell switch>* <twocell arrow>
+  AST.Command.Twocell = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Command.Twocell.Hops2cell} twocell 2-cell
+     * @param {List[AST.Command.Twocell.Switch.*]} switches switches
+     * @param {AST.Command.Twocell.Arrow.*} arrow
+     */
+    Init: function (twocell, switches, arrow) {
+      this.twocell = twocell;
+      this.switches = switches;
+      this.arrow = arrow;
+    },
+    toString: function () {
+      return this.twocell.toString() + this.switches.mkString("") + this.arrow;
+    }
+  });
+  // <twocell> ::= '\' /[lrud]+/ 'twocell'
+  //           |   '\xtwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+  AST.Command.Twocell.Hops2cell = MathJax.Object.Subclass({
+    /**
+     * @param {String} hops hops
+     * @param {Option[AST.Object]} maybeDisplace displacement
+     */
+    Init: function (hops, maybeDisplace) {
+      this.hops = hops;
+      this.maybeDisplace = maybeDisplace;
+    }
+  });
+  AST.Command.Twocell.Twocell = AST.Command.Twocell.Hops2cell.Subclass({
+    toString: function () {
+      return "\\xtwocell[" + this.hops + "]" + this.maybeDisplace.getOrElse("{}");
+    }
+  });
+  //           |   '\' /[lrud]+/ 'uppertwocell'
+  //           |   '\xuppertwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+  AST.Command.Twocell.UpperTwocell = AST.Command.Twocell.Hops2cell.Subclass({
+    toString: function () {
+      return "\\xuppertwocell[" + this.hops + "]" + this.maybeDisplace.getOrElse("{}");
+    }
+  });
+  //           |   '\' /[lrud]+/ 'lowertwocell'
+  //           |   '\xlowertwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+  AST.Command.Twocell.LowerTwocell = AST.Command.Twocell.Hops2cell.Subclass({
+    toString: function () {
+      return "\\xlowertwocell[" + this.hops + "]" + this.maybeDisplace.getOrElse("{}");
+    }
+  });
+  //           |   '\' /[lrud]+/ 'compositemap'
+  //           |   '\xcompositemap' '[' /[lrud]+/ ']' '{' <text> '}'
+  AST.Command.Twocell.CompositeMap = AST.Command.Twocell.Hops2cell.Subclass({
+    toString: function () {
+      return "\\xcompositemap[" + this.hops + "]" + this.maybeDisplace.getOrElse("{}");
+    }
+  });
+  
+  // <twocell switch> ::= '^' <twocell label>
+  AST.Command.Twocell.Switch = MathJax.Object.Subclass({});
+  AST.Command.Twocell.Switch.UpperLabel = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Command.Twocell.Label} label label
+     */
+    Init: function (label) {
+      this.label = label;
+    },
+    toString: function () {
+      return "^" + this.label;
+    }
+  });
+  //          |   '_' <twocell label>
+  AST.Command.Twocell.Switch.LowerLabel = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Command.Twocell.Label} label label
+     */
+    Init: function (label) {
+      this.label = label;
+    },
+    toString: function () {
+      return "_" + this.label;
+    }
+  });
+  //          |   <nudge>
+  AST.Command.Twocell.Switch.SetCurvature = MathJax.Object.Subclass({
+    /**
+     * @param {AST.Command.Twocell.Nudge.*} nudge
+     */
+    Init: function (nudge) {
+      this.nudge = nudge;
+    },
+    toString: function () {
+      return this.nudge.toString();
+    }
+  });
+  //          |   '\omit'
+  AST.Command.Twocell.Switch.DoNotSetCurvedArrows = MathJax.Object.Subclass({
+    toString: function () {
+      return "\\omit";
+    }
+  });
+  //          |   '~!'
+  AST.Command.Twocell.Switch.PlaceModMapObject = MathJax.Object.Subclass({
+    toString: function () {
+      return "~!";
+    }
+  });
+  //          |   '~' <what> '{' <object> '}'
+  // <what> ::= <empty>
+  //        |   '^' | '_'
+  //        |   '`' | "'"
+  AST.Command.Twocell.Switch.UseObject = MathJax.Object.Subclass({
+    /**
+     * @param {String} what
+     * @param {AST.Object} object
+     */
+    Init: function (what, object) {
+      this.what = what;
+      this.object = object;
+    },
+    toString: function () {
+      return "~" + this.what + "{" + this.object + "}";
+    }
+  });
+  
+  // <twocell label> ::= <digit> | <letter> | <cs>
+  //                 |   '{' <nudge>? '*' <object> '}'
+  //                 |   '{' <nudge>? <text> '}'
+  AST.Command.Twocell.Label = MathJax.Object.Subclass({
+    /**
+     * @param {Option[AST.Command.Twocell.Nudge.*]} maybeNudge
+     * @param {AST.Object} labelObject
+     */
+    Init: function (maybeNudge, labelObject) {
+      this.maybeNudge = maybeNudge;
+      this.labelObject = labelObject;
+    },
+    toString: function () {
+      return this.maybeNudge.toString() + this.labelObject;
+    }
+  });
+  
+  // <nudge> ::= '<' <factor> '>'
+  //         |   '<\omit>'
+  AST.Command.Twocell.Nudge = MathJax.Object.Subclass({});
+  AST.Command.Twocell.Nudge.Number = AST.Command.Twocell.Nudge.Subclass({
+    /**
+     * @param {Number} number number
+     */
+    Init: function (number) {
+      this.number = number;
+    },
+    toString: function () {
+      return "<" + this.number + ">";
+    }
+  });
+  AST.Command.Twocell.Nudge.Omit = AST.Command.Twocell.Nudge.Subclass({
+    toString: function () {
+      return "<\\omit>";
+    }
+  });
+  
+  // <twocell arrow> ::= '{' <twocell tok> (<twocell label entry> '}'
+  // <twocell tok> ::= '^' | '_' | '='
+  //               |   '\omit'
+  //               |   '`' | "'" | '"' | '!'
+  // <twocell label entry> ::= '*' <object>
+  //                       |   <text>
+  AST.Command.Twocell.Arrow = MathJax.Object.Subclass({});
+  AST.Command.Twocell.Arrow.WithOrientation = AST.Command.Twocell.Arrow.Subclass({
+    /**
+     * @param {String} tok
+     * @param {AST.Object} labelObject
+     */
+    Init: function (tok, labelObject) {
+      this.tok = tok;
+      this.labelObject = labelObject;
+    },
+    toString: function () {
+      return "{[" + this.tok + "] " + this.labelObject + "}";
+    }
+  });
+  //                 |   '{' <nudge> <twocell label entry> '}'
+  AST.Command.Twocell.Arrow.WithPosition = AST.Command.Twocell.Arrow.Subclass({
+    /**
+     * @param {AST.Command.Twocell.Nudge.*} nudge
+     * @param {AST.Object} labelObject
+     */
+    Init: function (nudge, labelObject) {
+      this.nudge = nudge;
+      this.labelObject = labelObject;
+    },
+    toString: function () {
+      return "{[" + this.nudge + "] " + this.labelObject + "}";
+    }
+  });
+  //                 |   '{' <twocell label entry> '}'
+  //                 |   <empty>
+  AST.Command.Twocell.Arrow.Default = AST.Command.Twocell.Arrow.Subclass({
+    /**
+     * @param {AST.Object} labelObject
+     */
+    Init: function (labelObject) {
+      this.labelObject = labelObject;
+    },
+    toString: function () {
+      return "{" + this.labelObject + "}";
+    }
+  });
+  
+  
+  
   
   var fun = FP.Parsers.fun;
   var elem = FP.Parsers.elem;
@@ -2848,6 +3057,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //           |   '\connect' <object>
     //           |   '\relax'
     //           |   '\xyignore' '{' <pos> <decor> '}'
+    //           |   <twocell command>
     command: memo(function () {
       return or(
         lit("\\ar").andr(fun(rep(p.arrowForm))).and(p.path).to(function (fsp) {
@@ -2886,7 +3096,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         lit("\\xyshowAST").andr(flit('{')).andr(p.pos).and(p.decor).andl(flit('}')).to(function (pd) {
           return AST.Command.ShowAST(pd.head, pd.tail);
-        })
+        }),
+        p.twocellCommand
       );
     }),
     
@@ -3349,7 +3560,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
             or(
               elem("{").andr(p.text).andl(felem("}")).to(function (t) { return "{" + t + "}"; }),
               elem("\\").andr(fun(
-                not(regex(/^(\\|ar|xymatrix|PATH|afterPATH|save|restore|POS|afterPOS|drop|connect|xyignore)/))
+                not(regex(/^(\\|ar|xymatrix|PATH|afterPATH|save|restore|POS|afterPOS|drop|connect|xyignore|([lrud]+(twocell|uppertwocell|lowertwocell|compositemap))|xtwocell|xuppertwocell|xlowertwocell|xcompositemap)/))
               )).andr(fun(
                 regex(/^[{}&]/).opt().to(function (c) { return c.getOrElse(""); })
               )).to(function (t) {
@@ -3370,7 +3581,158 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           };
         })
       )
+    }),
+    
+    // <command> ::= <twocell> <twocell switch>* <twocell arrow>
+    twocellCommand: memo(function () {
+      return p.twocell().and(fun(rep(p.twocellSwitch))).and(p.twocellArrow).to(function (tsa) {
+        return AST.Command.Twocell(tsa.head.head, tsa.head.tail, tsa.tail);
+      });
+    }),
+    
+    // <twocell> ::= '\' /[lrud]+/ 'twocell'
+    //           |   '\' /[lrud]+/ 'uppertwocell'
+    //           |   '\' /[lrud]+/ 'lowertwocell'
+    //           |   '\' /[lrud]+/ 'compositemap'
+    //           |   '\xtwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+    //           |   '\xuppertwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+    //           |   '\xlowertwocell' '[' /[lrud]+/ ']' '{' <text> '}'
+    //           |   '\xcompositemap' '[' /[lrud]+/ ']' '{' <text> '}'
+    twocell: memo(function () {
+      return or(
+        regexLit(/^\\[lrud]+twocell/).to(function (h) {
+          var hops = h.substring(1, h.length - "twocell".length);
+          return AST.Command.Twocell.Twocell(hops, FP.Option.empty);
+        }),
+        regexLit(/^\\[lrud]+uppertwocell/).to(function (h) {
+          var hops = h.substring(1, h.length - "uppertwocell".length);
+          return AST.Command.Twocell.UpperTwocell(hops, FP.Option.empty);
+        }),
+        regexLit(/^\\[lrud]+lowertwocell/).to(function (h) {
+          var hops = h.substring(1, h.length - "lowertwocell".length);
+          return AST.Command.Twocell.LowerTwocell(hops, FP.Option.empty);
+        }),
+        regexLit(/^\\[lrud]+compositemap/).to(function (h) {
+          var hops = h.substring(1, h.length - "compositemap".length);
+          return AST.Command.Twocell.CompositeMap(hops, FP.Option.empty);
+        }),
+        or(
+          lit("\\xtwocell").to(function () { return AST.Command.Twocell.Twocell; }),
+          lit("\\xuppertwocell").to(function () { return AST.Command.Twocell.UpperTwocell; }),
+          lit("\\xlowertwocell").to(function () { return AST.Command.Twocell.LowerTwocell; }),
+          lit("\\xcompositemap").to(function () { return AST.Command.Twocell.CompositeMap; })
+        ).andl(flit("[")).and(fun(regex(/^[lrud]+/))).andl(flit("]")).andl(flit("{")).and(p.text).andl(flit("}")).to(function (cht) {
+          var textObject = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + cht.tail));
+          return cht.head.head(cht.head.tail, FP.Option.Some(textObject));
+        })
+      );
+    }),
+    
+    // <twocell switch> ::= '^' <twocell label>
+    //          |   '_' <twocell label>
+    //          |   '\omit'
+    //          |   '~!'
+    //          |   '~' <what> '{' <object> '}'
+    //          |   <nudge>
+    // <what> ::= <empty>
+    //        |   '^' | '_'
+    //        |   '`' | "'"
+    twocellSwitch: memo(function () {
+      return or(
+        lit("^").andr(p.twocellLabel).to(function (l) {
+          return AST.Command.Twocell.Switch.UpperLabel(l);
+        }),
+        lit("_").andr(p.twocellLabel).to(function (l) {
+          return AST.Command.Twocell.Switch.LowerLabel(l);
+        }),
+        lit("\\omit").to(function () {
+          return AST.Command.Twocell.Switch.DoNotSetCurvedArrows();
+        }),
+        lit("~!").to(function () {
+          return AST.Command.Twocell.Switch.PlaceModMapObject();
+        }),
+        regexLit(/^(~[`'\^_]?)/).andl(flit("{")).and(p.object).andl(flit("}")).to(function (wo) {
+          var what = wo.head.substring(1);
+          return AST.Command.Twocell.Switch.UseObject(what, wo.tail);
+        }),
+        p.nudge().to(function (n) {
+          return AST.Command.Twocell.Switch.SetCurvature(n);
+        })
+      );
+    }),
+    
+    // <twocell label> ::= <digit> | <letter> | <cs>
+    //                 |   '{' <nudge>? '*' <object> '}'
+    //                 |   '{' <nudge>? <text> '}'
+    twocellLabel: memo(function () {
+      return or(
+        regexLit(/^[0-9a-zA-Z]/).to(function (c) {
+          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          return AST.Command.Twocell.Label(FP.Option.empty, obj);
+        }),
+        regexLit(/^(\\[a-zA-Z][a-zA-Z0-9]*)/).to(function (c) {
+          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          return AST.Command.Twocell.Label(FP.Option.empty, obj);
+        }),
+        lit("{").andr(fun(opt(p.nudge))).andl(flit("*")).and(p.object).andl(flit("}")).to(function (no) {
+          return AST.Command.Twocell.Label(no.head, no.tail);
+        }),
+        lit("{").andr(fun(opt(p.nudge))).and(p.text).andl(felem("}")).to(function (nt) {
+          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + nt.tail));
+          return AST.Command.Twocell.Label(nt.head, obj);
+        })
+      );
+    }),
+    
+    // <nudge> ::= '<' <factor> '>'
+    //         |   '<\omit>'
+    nudge: memo(function () {
+      return or(
+        lit("<\\omit>").to(function () {
+          return AST.Command.Twocell.Nudge.Omit();
+        }),
+        lit("<").andr(p.factor).andl(flit(">")).to(function (n) {
+          return AST.Command.Twocell.Nudge.Number(n);
+        })
+      );
+    }),
+    
+    // <twocell arrow> ::= '{' <twocell tok> (<twocell label entry> '}'
+    //                 |   '{' <nudge> <twocell label entry> '}'
+    //                 |   '{' <twocell label entry> '}'
+    //                 |   <empty>
+    // <twocell tok> ::= '^' | '_' | '='
+    //               |   '\omit'
+    //               |   '`' | "'" | '"' | '!'
+    twocellArrow: memo(function () {
+      return or(
+        lit("{").andr(fun(regexLit(/^([\^_=`'"!]|\\omit)/))).and(p.twocellLabelEntry).andl(flit("}")).to(function (te) {
+          return AST.Command.Twocell.Arrow.WithOrientation(te.head, te.tail);
+        }),
+        lit("{").andr(p.nudge).and(p.twocellLabelEntry).andl(flit("}")).to(function (te) {
+          return AST.Command.Twocell.Arrow.WithPosition(te.head, te.tail);
+        }),
+        lit("{").andr(p.twocellLabelEntry).andl(flit("}")).to(function (e) {
+          return AST.Command.Twocell.Arrow.Default(e);
+        }),
+        success("no arrow label").to(function () {
+          // TODO 無駄な空描画処理をなくす。
+          return AST.Command.Twocell.Arrow.Default(AST.Object(FP.List.empty, p.toMath("\\scriptstyle{}")));
+        })
+      );
+    }),
+    
+    // <twocell label entry> ::= '*' <object>
+    //                       |   <text>
+    twocellLabelEntry: memo(function () {
+      return or(
+        lit("*").andr(p.object),
+        p.text().to(function (t) {
+          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + t));
+        })
+      );
     })
+    
   })();
   
   MathJax.Hub.Insert(TEXDEF,{
@@ -13737,6 +14099,84 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       return this.object.toDropShape(context);
     }
   });
+  
+  
+  AST.Command.Twocell.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Twocell.Hops2cell.Augment({
+    toShape: function (context) {
+      // TODO impl
+    }
+  });
+  
+  AST.Command.Twocell.Twocell.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.UpperTwocell.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.LowerTwocell.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.CompositeMap.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.UpperLabel.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.LowerLabel.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.SetCurvature.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.DoNotSetCurvedArrows.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.PlaceModMapObject.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Switch.UseObject.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Label.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Nudge.Number.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Nudge.Omit.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Arrow.WithOrientation.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Arrow.WithPosition.Augment({
+    // TODO impl
+  });
+  
+  AST.Command.Twocell.Arrow.Default.Augment({
+    // TODO impl
+  });
+  
   
   
   MathJax.Hub.Startup.signal.Post("HTML-CSS Xy-pic Ready");
