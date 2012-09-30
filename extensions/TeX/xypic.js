@@ -2939,7 +2939,11 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           )
         )))
       )).to(function (mo) {
-        return AST.Modifier.Shape.Frame(mo.head, mo.tail);
+        var main = mo.head;
+        if (main === "") {
+          main = "-";
+        }
+        return AST.Modifier.Shape.Frame(main, mo.tail);
       });
     }),
     
