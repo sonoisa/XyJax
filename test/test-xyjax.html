@@ -31,30 +31,35 @@
 \[
 \begin{xy}
 \xymatrix @=5pc {
-A \rtwocell^f_g & B \\
-A \ruppertwocell^f{\alpha} \rlowertwocell_h{\beta} \ar[r]_(.35)g & B \\
-A \xuppertwocell[r]{}^f{\alpha} \xlowertwocell[r]{}_h{\beta} \ar[r]_(.35)g & B \\
-\txt{Clouds}\rtwocell<10>
- _{\hbox{\tiny evapolation}}
- ^{\hbox{\tiny precipitation}}
- {'{\mathbf{H_2 O}}}
-& \txt{Oceans} \\
+A \rtwocell^f_g^h & B \ruppertwocell^f{\alpha} \rlowertwocell<-15>_h{\beta} \ar[r]_(.35)g & C\\
+A \ruppertwocell^{f}{\alpha} \rlowertwocell_h{\beta} \ar[r]_(.35)g & B \\
 P \rtwocell~!~'{\dir{>>}}~`{\dir{|}}^{<1.5>M}_{<1.5>M'}{=f} & S \\
-P \rtwocell^{<1.5>*\dir{x}}{=f} & S \\
-P \rtwocell & S \\
+P \rtwocell^{<2>*@{>}}_{<2>*@{>}}{<3>f} & S & P' \ltwocell^{<2>*@{>}}_{<2>*@{>}}{<3>f} \\
+P \rtwocell^{f} & S \rtwocell^f & R \\
+P \rtwocell\omit^f{\alpha} & S \rtwocell<\omit>^f{\beta} & R \\
+P \rcompositemap_f^g & S \\
 }
 \end{xy}
 \]
 
 \[
 \begin{xy}
-\xymatrix {
-
+\xymatrix @=5pc {
+A \rtwocell^f_g{\alpha} & B \\
+A \ruppertwocell^f{\alpha} \rlowertwocell_h{\beta} \ar[r]_(.35)g & B \\
+A \xuppertwocell[r]{}^f{\alpha} \xlowertwocell[r]{}_h{\beta} \ar[r]_(.35)g & B \\
+\txt{Clouds}\rtwocell<10>
+ _{\tiny evapolation}
+ ^{\tiny precipitation}
+ {'{\mathbf{H_2 O}}}
+& \txt{Oceans} \\
+P \rtwocell~!~'{\dir{>>}}~`{\dir{|}}^{<1.5>M}_{<1.5>M'}{=f} & S \\
+P \rtwocell^{<1.5>*\dir{x}}{=f} & S \\
+\txt{FUn} \rtwocell<8>~^{{?}}~_{{\circ}~**{\bullet}}{!\&} & \txt{gaMES} \\
 }
 \end{xy}
 \]
 
-<!--
 \[
 \begin{xy}
 0*++[c]\xybox{
