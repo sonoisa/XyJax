@@ -4406,6 +4406,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           
           var box = shape.getBoundingBox();
           if (box !== undefined) {
+            box = xypic.Frame.Rect(
+              0, 0,
+              {
+                l:Math.max(0, -(box.x - box.l)),
+                r:Math.max(0, box.x + box.r),
+                u:Math.max(0, box.y + box.u),
+                d:Math.max(0, -(box.y - box.d))
+              }
+            );
+            
             svg.setWidth(box.l + box.r + 2 * p);
             svg.setHeight(box.u + box.d + 2 * p);
             svg.setAttribute("viewBox", [ em2px(box.x - box.l - p), -em2px(box.y + box.u + p), em2px(box.l + box.r + 2 * p), em2px(box.u + box.d + 2 * p) ].join(" "));
@@ -4414,15 +4424,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               var to = textObjects[i];
               var x = parseFloat(to.getAttribute("x"));
               var y = parseFloat(to.getAttribute("y"));
-              to.style.left = "" + em2px(x - (box.x - box.l - p)) + "px";
-              to.style.top = "" + em2px(y + (box.y - box.d)) + "px";
+              to.style.left = "" + em2px(x + box.l + p) + "px";
+              to.style.top = "" + em2px(y) + "px";
             }
             
-            bbox = { h:(box.u + box.d + p), d:p, w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
+            bbox = { h:(box.u + p), d:(box.d + p), w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
             span.bbox = bbox;
-            D = p;
+            D = box.d + p;
             W = box.l + box.r + 2 * p;
-            H = box.h + box.d + p;
+            H = box.h + p;
             
             HTMLCSS.placeBox(scale, 0, -D, true);
             frame.style.width = HTMLCSS.Em(W);
