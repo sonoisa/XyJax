@@ -4434,7 +4434,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             W = box.l + box.r + 2 * p;
             H = box.h + p;
             
-            HTMLCSS.placeBox(scale, 0, -D, true);
+            HTMLCSS.placeBox(scale, 0, HTMLCSS.TeX.axis_height - D, true);
             frame.style.width = HTMLCSS.Em(W);
             frame.style.height = HTMLCSS.Em(H + D);
             HTMLCSS.addBox(stack, frame); 
