@@ -4425,7 +4425,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               var x = parseFloat(to.getAttribute("x"));
               var y = parseFloat(to.getAttribute("y"));
               to.style.left = "" + em2px(x + box.l + p) + "px";
-              to.style.top = "" + em2px(y) + "px";
+              to.style.top = "" + em2px(y - HTMLCSS.TeX.axis_height) + "px";
             }
             
             bbox = { h:(box.u + p), d:(box.d + p), w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
