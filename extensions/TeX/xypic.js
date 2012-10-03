@@ -906,6 +906,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     },
     toString: function () { return "!" + this.vector; }
   });
+  // <modifier> ::= '!'
+  AST.Modifier.RestoreOriginalRefPoint = AST.Modifier.Subclass({
+    toString: function () { return "!"; }
+  });
   // <modifier> ::= <add-op> <size>
   // <add-op> ::= '+' | '-' | '=' | '+=' | '-='
   // <size> ::= <vector> | <empty>
@@ -2864,6 +2868,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return or(
         lit("!").andr(p.vector).to(function (v) {
           return AST.Modifier.Vector(v);
+        }),
+        lit("!").to(function (v) {
+          return AST.Modifier.RestoreOriginalRefPoint();
         }),
         lit("[").andr(p.shape).andl(flit("]")).to(function (s) {
           return s;
@@ -5627,13 +5634,24 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.c = c;
       this.math = math;
       this.svgForTestLayout = svgForTestLayout;
+      this.originalBBox = undefined;
       memoize(this, "getBoundingBox");
+      memoize(this, "getOriginalReferencePoint");
     },
     draw: function (svg) {
       this._draw(svg, false);
     },
     getBoundingBox: function () {
       return this._draw(this.svgForTestLayout, true);
+    },
+    getOriginalReferencePoint: function () {
+      this.getBoundingBox();
+      var originalBBox = this.originalBBox;
+      
+      var c = this.c;
+      var H = originalBBox.H;
+      var D = originalBBox.D;
+      return xypic.Frame.Point(c.x, c.y - (H - D) / 2);
     },
     _draw: function (svg, test) {
       var math = this.math;
@@ -5686,6 +5704,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var halfW = W / 2;
       
       var c = this.c;
+      this.originalBBox = { H:H, D:D, W:W };
+      
       if (!test) {
         var origin = svg.getOrigin();
         mathSpan.setAttribute("x", c.x - halfW - origin.x);
@@ -5693,6 +5713,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         textObjects.push(mathSpan);
 
 /*        
+        svg.createSVGElement("rect", {
+          x:em2px(c.x - halfW),
+          y:-em2px(c.y - (H - D) / 2),
+          width:em2px(W),
+          height:0.1,
+          stroke:"green", "stroke-width":0.3
+        });
+        
         console.log("span.top:" + span.offsetTop + ", " + (span.offsetTop / HTMLCSS.em) + "em");
         console.log("span.height:" + span.offsetHeight + ", " + (span.offsetHeight / HTMLCSS.em) + "em");
         console.log("stack.top:" + stack.offsetTop + ", " + (stack.offsetTop / HTMLCSS.em) + "em");
@@ -11025,8 +11053,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (objectBoundingBox === undefined) {
           return xypic.Shape.none;
         }
+        var originalReferencePoint = tmpEnv.originalReferencePoint;
         tmpEnv = env.duplicate(); // restore angle
         tmpEnv.c = objectBoundingBox;
+        tmpEnv.originalReferencePoint = originalReferencePoint;
         subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
         objectShape = modifiers.head.modifyShape(subcontext, objectShape, modifiers.tail);
         context.appendShapeToFront(objectShape);
@@ -11058,8 +11088,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         if (objectBoundingBox === undefined) {
           return xypic.Shape.none;
         }
+        var originalReferencePoint = tmpEnv.originalReferencePoint;
         tmpEnv = env.duplicate(); // restore angle
         tmpEnv.c = objectBoundingBox;
+        tmpEnv.originalReferencePoint = originalReferencePoint;
         subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
         objectShape = modifiers.head.modifyShape(subcontext, objectShape, modifiers.tail);
         context.appendShapeToFront(objectShape);
@@ -11082,15 +11114,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toConnectShape: function (context) {
       // 多重線の幅、点線・破線の幅の基準
       var env = context.env;
+      var origC = env.c;
+      var env = context.env;
       var t = AST.xypic.thickness;
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
       if (s.x !== e.x || s.y !== e.y) {
         var shape = xypic.Curve.Line(s, e).toShape(context, this, "196883" /* dummy dir name */, "");
+        env.originalReferencePoint = origC;
         return shape;
       } else {
         env.angle = 0;
         env.lastCurve = xypic.LastCurve.none;
+        env.originalReferencePoint = origC;
         return xypic.Shape.none;
       }
     },
@@ -11107,10 +11143,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.ObjectBox.WrapUpObject.Augment({
     toDropShape: function (context) {
-      return this.object.toDropShape(context);
+      var env = context.env;
+      var shape = this.object.toDropShape(context);
+      env.originalReferencePoint = env.c;
+      return shape;
     },
     toConnectShape: function (context) {
-      return this.object.toConnectShape(context);
+      var env = context.env;
+      var shape = this.object.toConnectShape(context);
+      env.originalReferencePoint = env.c;
+      return shape;
     }
   });
   
@@ -11132,6 +11174,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       env.c = c;
       var compositeShape = subcontext.shape;
       context.appendShapeToFront(compositeShape);
+      env.originalReferencePoint = origC;
       return compositeShape;
     }
   });
@@ -11156,6 +11199,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var u = Math.max(0, bbox.u + bbox.y);
       var d = Math.max(0, bbox.d - bbox.y);
       env.c = xypic.Frame.Rect(c.x, c.y, { l:l, r:r, u:u, d:d });
+      env.originalReferencePoint = c;
       var objectShape = xypic.Shape.TranslateShape(c.x, c.y, subshape);
       context.appendShapeToFront(objectShape);
       return objectShape;
@@ -11164,15 +11208,21 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.ObjectBox.Xymatrix.Augment({
     toDropShape: function (context) {
-      return this.xymatrix.toShape(context);
+      var env = context.env;
+      var c = env.c;
+      var shape = this.xymatrix.toShape(context);
+      env.originalReferencePoint = c;
+      return shape;
     }
   });
   
   AST.ObjectBox.Text.Augment({
     toDropShape: function (context) {
-      var textShape = xypic.Shape.TextShape(context.env.c, this.math, svgForTestLayout);
+      var env = context.env;
+      var textShape = xypic.Shape.TextShape(env.c, this.math, svgForTestLayout);
       context.appendShapeToFront(textShape);
-      context.env.c = textShape.getBoundingBox();
+      env.c = textShape.getBoundingBox();
+      env.originalReferencePoint = textShape.getOriginalReferencePoint();
       return textShape;
     }
   });
@@ -11180,6 +11230,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.ObjectBox.Empty.Augment({
     toDropShape: function (context) {
       var env = context.env;
+      env.originalReferencePoint = env.c;
       env.c = xypic.Frame.Point(env.c.x, env.c.y);
       return xypic.Shape.none;
     }
@@ -11188,11 +11239,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.ObjectBox.Txt.Augment({
     toDropShape: function (context) {
-      if (context.env.c === undefined) {
+      var env = context.env;
+      if (env.c === undefined) {
         return xypic.Shape.none;
       }
       // TODO change width
       var textShape = this.textObject.toDropShape(context);
+      env.originalReferencePoint = env.c;
       return textShape;
     }
   });
@@ -11214,7 +11267,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (env.c === undefined) {
         return xypic.Shape.none;
       }
-      
+      env.originalReferencePoint = env.c;
       var r = this.radius.radius(context);
       var x = env.c.x;
       var y = env.c.y;
@@ -11225,6 +11278,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     toConnectShape: function (context) {
       // TODO: 何もしなくてよいかTeXの出力結果を確認する。
+      var env = context.env;
+      env.originalReferencePoint = env.c;
       return xypic.Shape.none;
     }
   });
@@ -11352,6 +11407,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.ObjectBox.Frame.Augment({
     toDropShape: function (context) {
+      var env = context.env;
+      env.originalReferencePoint = env.c;
       return this.toDropFilledShape(context, "currentColor", false)
     },
     toDropFilledShape: function (context, color, convertToEllipse) {
@@ -11559,6 +11616,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       if (c === undefined || p === undefined) {
         xypic.Shape.none;
       }
+      env.originalReferencePoint = c;
       
       var tmpEnv = env.duplicate();
       tmpEnv.c = p.combineRect(c);
@@ -11598,6 +11656,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toDropShape: function (context) {
       var env = context.env;
       var c = env.c;
+      env.originalReferencePoint = c;
       var angle = env.angle;
       if (c === undefined) {
         return xypic.Shape.none;
@@ -11875,8 +11934,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
           
         default:
-          // TODO 不明な矢印であるエラーを発生させる。
-          return xypic.Shape.none;
+          throw xypic.ExecutionError("\\dir " + this.variant + "{" + this.main + "} not defined.");
       }
       
       context.appendShapeToFront(shape);
@@ -11885,6 +11943,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     toConnectShape: function (context) {
       // 多重線の幅、点線・破線の幅の基準
       var env = context.env;
+      env.originalReferencePoint = env.c;
       var t = AST.xypic.thickness;
       var s = env.p.edgePoint(env.c.x, env.c.y);
       var e = env.c.edgePoint(env.p.x, env.p.y);
@@ -11901,11 +11960,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.ObjectBox.Curve.Augment({
     toDropShape: function (context) {
+      var env = context.env;
+      env.originalReferencePoint = env.c;
       return xypic.Shape.none;
-      return xypic.Frame.Point(env.c.x, env.c.y);
     },
     toConnectShape: function (context) {
       var env = context.env;
+      env.originalReferencePoint = env.c;
       // find object for drop and connect
       var objectForDrop = undefined;
       var objectForConnect = undefined;
@@ -11928,7 +11989,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
 //          cx:em2px(env.c.x), cy:-em2px(env.c.y), r:em2px(thickness/2)
 //        });
       });
-//      console.log("controlPoints:"+controlPoints);
       
       env.c = c;
       env.p = p;
@@ -12431,11 +12491,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Corner.Axis.Augment({
     xy: function (context) {
-      var c = context.env.c;
-      return { x:0, y:(c.u - c.d) / 2 };
+      return { x:0, y:HTMLCSS.TeX.axis_height * HTMLCSS.length2em("10pt") };
     },
     angle: function (context) {
-      var xy = this.xy(context);
       return Math.PI / 2;
     }
   });
@@ -12456,8 +12514,24 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     modifyShape: function (context, objectShape, restModifiers) {
       var d = this.vector.xy(context);
       var env = context.env;
-      env.c = env.c.move(env.c.x - d.x, env.c.y - d.y);
+      env.c = env.c.shiftFrame(-d.x, -d.y);
       objectShape = xypic.Shape.TranslateShape(-d.x, -d.y, objectShape);
+      return this.proceedModifyShape(context, objectShape, restModifiers);
+    }
+  });
+  
+  AST.Modifier.RestoreOriginalRefPoint.Augment({
+    preprocess: function (context, reversedProcessedModifiers) {
+    },
+    modifyShape: function (context, objectShape, restModifiers) {
+      var env = context.env;
+      var origRefPoint = env.originalReferencePoint;
+      if (origRefPoint !== undefined) {
+        var dx = env.c.x - origRefPoint.x;
+        var dy = env.c.y - origRefPoint.y;
+        env.c = env.c.shiftFrame(dx, dy);
+        objectShape = xypic.Shape.TranslateShape(dx, dy, objectShape);
+      }
       return this.proceedModifyShape(context, objectShape, restModifiers);
     }
   });

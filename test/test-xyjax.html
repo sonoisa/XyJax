@@ -28,14 +28,46 @@
 <hr>
 <p>
 
-<!--
 \[
 \begin{xy}
-0          *@{x} *    {\displaystyle \int},
-0+/r0.5pc/ *@{x} *!<0pt,-2.5pt>   {\displaystyle \int},
-\end{xy} 
+\xymatrix {
+*+!!A{c} \ar[r] \ar[d] & 
+*+!!A{a\frac{x}{y}} \ar[r] \ar[d] \ar[ld] & 
+*+!!A{\underline{\underline{g}}} \ar[r] \ar[d] \ar[ld] & 
+*+!!A{\hat{\hat{\overline{\overline{h^2}}}}} \ar[d] \ar[ld] \\
+    {c} \ar[r] & 
+    {a\frac{x}{y}} \ar[r] & 
+    {\underline{\underline{g}}} \ar[r] & 
+    {\hat{\hat{\overline{\overline{h^2}}}}} \\
+}
+\end{xy}
 \]
--->
+
+\[
+\begin{xy}
+0+/r-4pc/  *@{x} *    \txt{A},
+0+/r-3.5pc/*@{x} *!   \txt{A},
+0+/r-3pc/  *@{x} *!!A \txt{A},
+0+/r-2pc/  *@{x} *    {A},
+0+/r-1.5pc/*@{x} *!   {A},
+0+/r-1pc/  *@{x} *!!A {A},
+0          *@{x} *    {\displaystyle \int},
+0+/r0.5pc/ *@{x} *!   {\displaystyle \int},
+0+/r1pc/   *@{x} *!!A {\displaystyle \int},
+0+/r2pc/   *@{x} *    {=},
+0+/r2.5pc/ *@{x} *!   {=},
+0+/r3pc/   *@{x} *!!A {=},
+0+/r4pc/   *@{x} *    \object{\displaystyle \int},
+0+/r4.5pc/ *@{x} *!   \object{\displaystyle \int},
+0+/r5pc/   *@{x} *!!A \object{\displaystyle \int},
+0+/r7pc/   *@{x} *    \composite{{\displaystyle \int}*{ABC}},
+0+/r8pc/   *@{x} *!   \composite{{\displaystyle \int}*{ABC}},
+0+/r9pc/   *@{x} *!!A \composite{{\displaystyle \int}*{ABC}},
+0+/r11pc/  *@{x} *    \xybox{0+/d1pc/;0+/r1pc/**@{-}},
+0+/r13pc/  *@{x} *!   \xybox{0+/d1pc/;0+/r1pc/**@{-}},
+0+/r15pc/  *@{x} *!!A \xybox{0+/d1pc/;0+/r1pc/**@{-}},
+\end{xy}
+\]
 
 \[
 \begin{xy}
