@@ -29,6 +29,37 @@
 <p>
 
 \[
+\newcommand\Ker{\mathrm{Ker}\,}
+\newcommand\Coker{\mathrm{Coker}\,}
+\begin{xy}
+\xymatrix {
+  0 \ar@[red][r] & {\Ker f} \ar@[red][r]
+  & {\Ker a} \ar@[red][r] \ar[d]
+  & {\Ker b} \ar@[red][r] \ar[d] 
+  & {\Ker c} \ar@[red]@`{[]+/r10pc/, [dddll]+/l10pc/}[dddll]_(0.55)d \ar[d]
+\\
+  &
+  & A \ar@[blue][r]^f \ar@[blue][d]^a 
+  & B \ar@[blue][r] \ar@[blue][d]^b 
+  & C \ar@[blue][r] \ar@[blue][d]^c 
+  & 0
+\\
+  & 0 \ar@[blue][r] & A' \ar@[blue][r] \ar[d] 
+  & B' \ar@[blue][r]^{g'} \ar[d] 
+  & C' \ar[d]
+\\
+  &
+  & {\Coker a} \ar@[red][r] 
+  & {\Coker b} \ar@[red][r] 
+  & {\Coker c} \ar@[red][r] 
+  & {\Coker g'} \ar@[red][r] 
+  & 0
+}
+\end{xy}
+\]
+
+<!--
+\[
 \begin{xy}
 \xymatrix {
 *+!!A{c} \ar[r] \ar[d] & 

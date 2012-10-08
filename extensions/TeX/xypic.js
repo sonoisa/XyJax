@@ -23,6 +23,10 @@
 
 MathJax.Extension.xypic = {
   version: "0.1",
+  constants: {
+    whiteSpaceRegex: /^(\s+|%[^\r\n]*(\r\n|\r|\n)?)+/,
+    unsupportedBrowserErrorMessage: "Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"
+  },
   signalHandler: {
     signals: [],
     hookedSignals: [],
@@ -2359,8 +2363,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         p.vector().to(function (v) { return AST.Coord.Vector(v); }), 
         lit('"').andr(p.id).andl(felem('"')).to(function (id) { return AST.Coord.Id(id) }),
         lit('{').andr(p.posDecor).andl(flit('}')).to(function (pd) { return AST.Coord.Group(pd) }),
-        regexLit(/^s\d/).to(function (sn) {
-          return AST.Coord.StackPosition(parseInt(sn.substring(1)));
+        lit('s').andr(fun(regexLit(/^\d/))).to(function (n) {
+          return AST.Coord.StackPosition(parseInt(n));
         }),
         lit('s').andr(flit('{')).and(p.nonnegativeNumber).andl(flit('}')).to(function (n) {
           return AST.Coord.StackPosition(n);
@@ -2584,7 +2588,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         p.txt,
         p.curve,
-        regex(/^(\\[a-zA-Z][a-zA-Z0-9]+)/).andl(flit("{")).and(p.text).andl(flit("}")).to(function (bt) {
+        regex(/^(\\[a-zA-Z@][a-zA-Z0-9@]+)/).andl(flit("{")).and(p.text).andl(flit("}")).to(function (bt) {
           return p.toMath(bt.head + "{" + bt.tail + "}");
         })
       );
@@ -2614,18 +2618,21 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return AST.ObjectBox.Text(mml.root);
     },
     
-    // <text> ::= /[^{}\\]*/ (( '\{' | '\}' | '\' | '{' <text> '}' ) /[^{}\\]*/ )*
+    // <text> ::= /[^{}\\%]*/ (( '\{' | '\}' | '\%' | '\\' | '{' <text> '}' | /%[^\r\n]*(\r\n|\r|\n)?/ ) /[^{}\\%]*/ )*
     text: memo(function () {
-      return regex(/^[^{}\\]*/).and(function () {
+      return regex(/^[^{}\\%]*/).and(function () {
         return (
           or(
-            regex(/^(\\\{|\\\}|\\)/).to(function (x) {
+            regex(/^(\\\{|\\\}|\\%|\\)/).to(function (x) {
               return x;
             }),
             elem("{").andr(p.text).andl(felem("}")).to(function (x) {
               return "{" + x + "}";
+            }),
+            regex(/^%[^\r\n]*(\r\n|\r|\n)?/).to(function (x) {
+              return ' '; // ignore comments
             })
-          ).and(fun(regex(/^[^{}\\]*/)))).rep().to(function (xs) {
+          ).and(fun(regex(/^[^{}\\%]*/)))).rep().to(function (xs) {
             var res = "";
             xs.foreach(function (x) {
               res += x.head + x.tail;
@@ -2638,7 +2645,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }),
     
     txt: memo(function () {
-      return lit("\\txt").andr(p.txtWidth).and(fun(regex(/^(\\[a-zA-Z][a-zA-Z0-9]+)?/))).andl(flit("{")).and(p.text).andl(flit("}")).to(function (wst) {
+      return lit("\\txt").andr(p.txtWidth).and(fun(regex(/^(\\[a-zA-Z@][a-zA-Z0-9@]+)?/))).andl(flit("{")).and(p.text).andl(flit("}")).to(function (wst) {
           var width = wst.head.head;
           var style = wst.head.tail;
           var text = wst.tail;
@@ -3562,7 +3569,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }),
     
     // <loose objectbox> ::= <objectbox>
-    //                   |   /[^\\{}&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '&' ) | '{' <text> '}' ) /[^\\{}&]+/* )*
+    //                   |   /[^\\{}%&]+/* ( ( '\' not( '\' | <decor command names> ) ( '{' | '}' | '%' | '&' ) | '{' <text> '}' | /%[^\r\n]*(\r\n|\r|\n)?/ ) /[^\\{}%&]+/* )*
     // <decor command names> ::= 'ar' | 'xymatrix' | 'PATH' | 'afterPATH'
     //                       |   'save' | 'restore' | 'POS' | 'afterPOS' | 'drop' | 'connect' | 'xyignore'
     looseObjectbox: memo(function () {
@@ -3570,19 +3577,22 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         p.objectbox().to(function (o) { return {
           isEmpty:false, object:o
         } }),
-        regex(/^[^\\{}&]+/).opt().to(function (rs) { return rs.getOrElse(""); }).and(fun(
+        regex(/^[^\\{}%&]+/).opt().to(function (rs) { return rs.getOrElse(""); }).and(fun(
           rep(
             or(
               elem("{").andr(p.text).andl(felem("}")).to(function (t) { return "{" + t + "}"; }),
               elem("\\").andr(fun(
                 not(regex(/^(\\|ar|xymatrix|PATH|afterPATH|save|restore|POS|afterPOS|drop|connect|xyignore|([lrud]+(twocell|uppertwocell|lowertwocell|compositemap))|xtwocell|xuppertwocell|xlowertwocell|xcompositemap)/))
               )).andr(fun(
-                regex(/^[{}&]/).opt().to(function (c) { return c.getOrElse(""); })
+                regex(/^[{}%&]/).opt().to(function (c) { return c.getOrElse(""); })
               )).to(function (t) {
                 return "\\" + t;
+              }),
+              regex(/^%[^\r\n]*(\r\n|\r|\n)?/).to(function (x) {
+                return ' '; // ignore comments
               })
             ).and(fun(
-              regex(/^[^\\{}&]+/).opt().to(function (cs) { return cs.getOrElse(""); })
+              regex(/^[^\\{}%&]+/).opt().to(function (cs) { return cs.getOrElse(""); })
             )).to(function (tt) {
               return tt.head + tt.tail;
             })
@@ -3794,7 +3804,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
      */
     XY: function(begin) {
       try {
-        var parseContext = { lastNoSuccess: undefined };
+        var parseContext = {
+          lastNoSuccess: undefined,
+          whiteSpaceRegex: xypic.constants.whiteSpaceRegex
+        };
         var input = FP.StringReader(this.string, this.i, parseContext);
         var result = FP.Parsers.parse(p.xy(), input);
         this.i = result.next.offset;
@@ -3806,7 +3819,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         if (supportGraphics) {
           this.Push(AST.xypic(result.result));
         } else {
-          this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
+          this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
         }
       } else {
         throw xypic.ParseError(parseContext.lastNoSuccess);
@@ -3820,7 +3833,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
      */
     Xybox: function () {
       try {
-        var parseContext = { lastNoSuccess: undefined };
+        var parseContext = {
+          lastNoSuccess: undefined,
+          whiteSpaceRegex: xypic.constants.whiteSpaceRegex
+        };
         var input = FP.StringReader(this.string, this.i, parseContext);
         var result = FP.Parsers.parse(p.xybox(), input);
         this.i = result.next.offset;
@@ -3832,7 +3848,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         if (supportGraphics) {
           this.Push(AST.xypic(result.result));
         } else {
-          this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
+          this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
         }
       } else {
         throw xypic.ParseError(parseContext.lastNoSuccess);
@@ -3844,7 +3860,10 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
      */
     Xymatrix: function () {
       try {
-        var parseContext = { lastNoSuccess: undefined };
+        var parseContext = {
+          lastNoSuccess: undefined,
+          whiteSpaceRegex: xypic.constants.whiteSpaceRegex
+        };
         var input = FP.StringReader(this.string, this.i, parseContext);
         var result = FP.Parsers.parse(p.xymatrixbox(), input);
         this.i = result.next.offset;
@@ -3856,7 +3875,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         if (supportGraphics) {
           this.Push(AST.xypic(result.result));
         } else {
-          this.Push(MML.merror("Unsupported Browser. Please open with Firefox/Safari/Chrome/Opera"));
+          this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
         }
       } else {
         throw xypic.ParseError(parseContext.lastNoSuccess);

@@ -413,24 +413,23 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
       var input = FP.StringReader(str, 0, { lastNoSuccess: undefined });
       return FP.Parsers.parseAll(p, input);
     },
-    whiteSpaceRegex: /^\s+/,
-    handleWhiteSpace: function (source, offset) {
-      var m = FP.Parsers.whiteSpaceRegex.exec(source.substring(offset, source.length));
+    _handleWhiteSpace: function (input) {
+      var whiteSpaceRegex = input.context.whiteSpaceRegex;
+      var source = input.source;
+      var offset = input.offset;
+      var m = whiteSpaceRegex.exec(source.substring(offset, source.length));
       if (m !== null) {
         return offset + m[0].length;
       } else {
         return offset;
       }
     },
-    whiteSpace: function () {
-      return FP.Parsers.regex(FP.Parsers.whiteSpaceRegex);
-    },
     literal: function (str) {
       return FP.Parsers.Parser(function (input) {
         var source, offset, start, i, j, found;
         source = input.source;
         offset = input.offset;
-        start = FP.Parsers.handleWhiteSpace(source, offset);
+        start = FP.Parsers._handleWhiteSpace(input);
         i = 0;
         j = start;
         while (i < str.length && j < source.length && 
@@ -485,7 +484,7 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
         var source, offset, start, m, found;
         source = input.source;
         offset = input.offset;
-        start = FP.Parsers.handleWhiteSpace(source, offset);
+        start = FP.Parsers._handleWhiteSpace(input);
         m = rx.exec(source.substring(start, source.length));
         if (m !== null) {
           return FP.Parsers.Success(m[0], input.drop(start + m[0].length - offset));
@@ -507,7 +506,7 @@ MathJax.Hub.Register.StartupHook("End Extensions",function () {
         var source, offset, start;
         source = input.source;
         offset = input.offset;
-        start = FP.Parsers.handleWhiteSpace(source, offset);
+        start = FP.Parsers._handleWhiteSpace(input);
         if (source.length === start) {
           return FP.Parsers.Success("", input);
         } else {
