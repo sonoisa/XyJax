@@ -13706,8 +13706,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Command.Path.Segment.Augment({
     setupPositions: function (context) {
       var env = context.env;
-      var p = env.prevSegmentEndPoint;
+      env.p = env.prevSegmentEndPoint;
       this.pos.toShape(context);
+      var p = env.p;
       var c = env.c;
       
       var tx = c.x - p.x;
