@@ -113,7 +113,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       //hole: ['Macro', '{\\bbox[3pt]{}}']
       hole: ['Macro', '{\\style{visibility:hidden}{x}}'],
       xybox: 'Xybox',
-      xymatrix: 'Xymatrix'
+      xymatrix: 'Xymatrix',
+      newdir: 'XypicNewdir'
     },
     environment: {
       xy: ['ExtensionEnv', null, 'XYpic']
@@ -136,6 +137,23 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.cmd = cmd;
     },
     type: "xypic",
+    inferRow: false,
+    defaults: {
+      mathbackground: MML.INHERIT,
+      mathcolor: MML.INHERIT,
+      notation: MML.NOTATION.LONGDIV,
+      texClass: MML.TEXCLASS.ORD
+    },
+    setTeXclass: MML.mbase.setSeparateTeXclasses,
+    toString: function () { return this.type + "(" + this.cmd + ")"; }
+  });
+  
+  AST.xypic.newdir = MML.mbase.Subclass({
+    Init: function (cmd) {
+      this.data = [];
+      this.cmd = cmd;
+    },
+    type: "newdir",
     inferRow: false,
     defaults: {
       mathbackground: MML.INHERIT,
@@ -783,7 +801,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   
   // <objectbox> ::= '\dir' <variant> '{' <main> '}'
   // <variant> ::= '^' | '_' | '0' | '1' | '2' | '3' | <empty>
-  // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':')*
+  // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':' | /[a-zA-Z@ ]/)*
   AST.ObjectBox.Dir = AST.ObjectBox.Subclass({
     Init: function (variant, main) {
       this.variant = variant;
@@ -2211,6 +2229,20 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // '\newdir' '{' <main> '}' '{' <composite_object> '}'
+  AST.Command.Newdir = MathJax.Object.Subclass({
+    /**
+     * @param {String} dirMain
+     * @param {AST.ObjectBox.CompositeObject} compositeObject
+     */
+    Init: function (dirMain, compositeObject) {
+      this.dirMain = dirMain;
+      this.compositeObject = compositeObject;
+    },
+    toString: function () {
+      return "\\newdir{" + this.dirMain + "}{" + this.compositeObject + "}";
+    }
+  });
   
   
   
@@ -2686,10 +2718,16 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     
     // <dir> ::= <variant> '{' <main> '}'
     // <variant> ::= '^' | '_' | '0' | '1' | '2' | '3' | <empty>
-    // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':')*
     dir: memo(function () {
-      return regexLit(/^[\^_0123]/).opt().andl(flit('{')).and(fun(regexLit(/^(-|\.|~|>|<|\(|\)|`|'|\||\*|\+|x|\/|o|=|:)*/ /*'*/).opt())).andl(flit('}')).to(function (vm) {
-        return AST.ObjectBox.Dir(vm.head.getOrElse(""), vm.tail.getOrElse(""));
+      return regexLit(/^[\^_0123]/).opt().andl(flit('{')).and(p.dirMain).andl(flit('}')).to(function (vm) {
+        return AST.ObjectBox.Dir(vm.head.getOrElse(""), vm.tail);
+      })
+    }),
+    
+    // <main> ::= ('-' | '.' | '~' | '>' | '<' | '(' | ')' | '`' | "'" | '|' | '*' | '+' | 'x' | '/' | 'o' | '=' | ':' | /[a-zA-Z@ ]/)*
+    dirMain: memo(function () {
+      return regex(/^(-|\.|~|>|<|\(|\)|`|'|\||\*|\+|x|\/|o|=|:|[a-zA-Z@ ])+/ /*'*/).opt().to(function (m) {
+        return m.getOrElse("");
       })
     }),
     
@@ -3760,6 +3798,14 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + t));
         })
       );
+    }),
+    
+    // \newdirの後の
+    // '{' <main> '}' '{' <composite_object> '}'
+    newdir: memo(function () {
+      return lit("{").andr(p.dirMain).andl(felem("}")).andl(flit("{")).and(p.compositeObject).andl(flit("}")).to(function (mc) {
+        return AST.Command.Newdir(mc.head, AST.ObjectBox.CompositeObject(mc.tail));
+      })
     })
     
   })();
@@ -3880,6 +3926,33 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       } else {
         throw xypic.ParseError(parseContext.lastNoSuccess);
       }
+    },
+    
+    /**
+     * Handle newdir
+     */
+    XypicNewdir: function () {
+      try {
+        var parseContext = {
+          lastNoSuccess: undefined,
+          whiteSpaceRegex: xypic.constants.whiteSpaceRegex
+        };
+        var input = FP.StringReader(this.string, this.i, parseContext);
+        var result = FP.Parsers.parse(p.newdir(), input);
+        this.i = result.next.offset;
+      } catch (e) {
+        throw e;
+      }
+      
+      if (result.successful) {
+        if (supportGraphics) {
+          this.Push(AST.xypic.newdir(result.result));
+        } else {
+          this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
+        }
+      } else {
+        throw xypic.ParseError(parseContext.lastNoSuccess);
+      }
     }
   });
   
@@ -3967,6 +4040,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     memo.reset = reset;
     reset();
   }
+  
+  xypic.DirRepository = MathJax.Object.Subclass({
+    Init: function () {
+      this.userDirMap = {};
+    },
+    get: function (dirMain) {
+      return this.userDirMap[dirMain];
+    },
+    put: function (dirMain, compositeObject) {
+      this.userDirMap[dirMain] = compositeObject;
+    }
+  });
   
   xypic.ModifierRepository = MathJax.Object.Subclass({
     Init: function () {
@@ -4144,6 +4229,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   // user defined shapes are global in scope.
   var modifierRepository = xypic.ModifierRepository();
+  var dirRepository = xypic.DirRepository();
   
   var svgForDebug;
   var svgForTestLayout;
@@ -4496,6 +4582,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     lineElementLength: HTMLCSS.length2em("5pt")
   });
   
+  AST.xypic.newdir.Augment({
+    toHTML: function (span) {
+      var newdir = this.cmd;
+      dirRepository.put(newdir.dirMain, newdir.compositeObject);
+      return span;
+    }
+  });
+  
   xypic.Util = MathJax.Object.Subclass({}, {
     extProd: function (v1, v2) {
       return [v1[1]*v2[2]-v1[2]*v2[1], v1[2]*v2[0]-v1[0]*v2[2], v1[0]*v2[1]-v1[1]*v2[0]];
@@ -4551,6 +4645,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   xypic.Frame = MathJax.Object.Subclass({
     toRect: function (def) {
       return xypic.Frame.Rect(this.x, this.y, def);
+    },
+    toPoint: function () {
+      return xypic.Frame.Point(this.x, this.y);
     },
     combineRect: function (that) {
       return xypic.Frame.combineRect(this, that);
@@ -11187,8 +11284,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var subcontext = xypic.DrawingContext(xypic.Shape.none, tmpEnv);
       this.objects.foreach(function (obj) {
         tmpEnv.c = origC;
-        obj.toDropShape(subcontext);
+        var tmpShape = obj.toDropShape(subcontext);
         c = xypic.Frame.combineRect(c, tmpEnv.c);
+        c = xypic.Frame.combineRect(c, tmpShape.getBoundingBox().toPoint());
       });
       env.c = c;
       var compositeShape = subcontext.shape;
@@ -11953,7 +12051,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
           
         default:
-          throw xypic.ExecutionError("\\dir " + this.variant + "{" + this.main + "} not defined.");
+          var newdirObj = dirRepository.get(this.main);
+          if (newdirObj !== undefined) {
+            shape = newdirObj.toDropShape(context);
+          } else {
+            throw xypic.ExecutionError("\\dir " + this.variant + "{" + this.main + "} not defined.");
+          }
       }
       
       context.appendShapeToFront(shape);

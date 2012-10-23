@@ -28,6 +28,34 @@
 <hr>
 <p>
 
+
+\[
+\newdir{ >}{{}*!/-3pt/@{>}}
+\begin{xy}
+0*+{A}="a", <5pc, 1pc>*+{B}="b"
+\ar @{>->} "a";"b" <2pt>
+\ar @{ >->} "a";"b" <-2pt>
+\end{xy}
+\]
+
+<!--
+\[
+\newcommand\nt[1]{\langle\text{#1}\rangle}
+\newcommand\from{\leftarrow}
+\begin{array}{clcll}\hline
+\text{Impl} & \text{Syntax} &&&\quad& \text{Action} \\\hline
+\checkmark & \nt{xy env} & \to & \bf\text{\begin{xy} $\nt{pos}\,\nt{decor}$ \end{xy}} && c \from \nt{coord} \\
+\checkmark & \nt{pos} & \to & \nt{coord} && c \from \nt{coord} \\
+\checkmark &  & | & \nt{pos}\,{\bf+}\,\nt{coord} && c \from \nt{pos} + \nt{coord}^{3a} \\
+\checkmark &  & | & \nt{pos}\,{\bf-}\,\nt{coord} && c \from \nt{pos} - \nt{coord}^{3a} \\
+\checkmark &  & | & \nt{pos}\,{\bf!}\,\nt{coord} && c \from \text{$\nt{pos}$ then skew$^{3b}$ $c$ by $\nt{coord}$} \\
+\checkmark &  & | & \nt{pos}\,{\bf.}\,\nt{coord} && c \from \text{$\nt{pos}$ but also covering$^{3c}$ $\nt{coord}$} \\
+\checkmark &  & | & \nt{pos}\,{\bf,}\,\nt{coord} && c \from \text{$\nt{pos}$ then $c \from \nt{coord}$} \\
+\hline
+\end{array}
+\]
+-->
+
 \[
 \begin{xy}
 \xymatrix{
