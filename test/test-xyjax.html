@@ -30,16 +30,6 @@
 
 
 \[
-\newdir{ >}{{}*!/-3pt/@{>}}
-\begin{xy}
-0*+{A}="a", <5pc, 1pc>*+{B}="b"
-\ar @{>->} "a";"b" <2pt>
-\ar @{ >->} "a";"b" <-2pt>
-\end{xy}
-\]
-
-<!--
-\[
 \newcommand\nt[1]{\langle\text{#1}\rangle}
 \newcommand\from{\leftarrow}
 \begin{array}{clcll}\hline
@@ -54,7 +44,34 @@
 \hline
 \end{array}
 \]
--->
+
+<!-- -->
+
+\[
+\newdir{m}{!/4.5pt/@{|}*:(1,-.2)@^{>}*:(1,.2)@_{>}}
+\begin{xy}
+0*+{A}="a", <5pc, 1pc>*+{B}="b"
+\ar @{=m} "a";"b"
+\end{xy}
+\]
+
+\[
+\newdir{m}{{}*!/-2pt/@^{(}}
+\begin{xy}
+0*+{A}="a", <5pc, 1pc>*+{B}="b"
+\ar @{m->} "a";"b"
+\end{xy}
+\]
+
+\[
+\newdir{ >}{{}*!/-3pt/@{>}}
+\begin{xy}
+0*+{A}="a", <5pc, 1pc>*+{B}="b"
+\ar @{>->} "a";"b" <2pt>
+\ar @{ >->} "a";"b" <-2pt>
+\end{xy}
+\]
+
 
 \[
 \begin{xy}

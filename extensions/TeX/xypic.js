@@ -112,6 +112,9 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     macros: {
       //hole: ['Macro', '{\\bbox[3pt]{}}']
       hole: ['Macro', '{\\style{visibility:hidden}{x}}'],
+      objectstyle: ['Macro', '\\textstyle'],
+      labelstyle: ['Macro', '\\scriptstyle'],
+      twocellstyle: ['Macro', '\\scriptstyle'],
       xybox: 'Xybox',
       xymatrix: 'Xymatrix',
       newdir: 'XypicNewdir'
@@ -2636,7 +2639,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     // <math-text> ::= '{' <text> '}'
     mathText: memo(function () {
       return lit("{").andr(p.text).andl(felem("}")).to(function (text) {
-        return p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+        return p.toMath("\\hbox{$\\objectstyle{" + text + "}$}");
       });
     }),
     toMath: function (math) {
@@ -3443,13 +3446,13 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     it2: memo(function () {
       return or(
         regexLit(/^[0-9a-zA-Z]/).to(function (c) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          return AST.Object(FP.List.empty, p.toMath("\\labelstyle " + c));
         }),
         regexLit(/^(\\[a-zA-Z][a-zA-Z0-9]*)/).to(function (c) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          return AST.Object(FP.List.empty, p.toMath("\\labelstyle " + c));
         }),
         lit("{").andr(p.text).andl(felem("}")).to(function (t) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + t));
+          return AST.Object(FP.List.empty, p.toMath("\\labelstyle " + t));
         }),
         lit('*').andr(p.object),
         lit('@').andr(p.dir).to(function (dir) {
@@ -3638,7 +3641,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         )).to(function (tt) {
           var text = tt.head + tt.tail;
           var isEmpty = (text.trim().length === 0);
-          var object = p.toMath("\\hbox{$\\textstyle{" + text + "}$}");
+          var object = p.toMath("\\hbox{$\\objectstyle{" + text + "}$}");
           return {
             isEmpty:isEmpty, object:object
           };
@@ -3685,7 +3688,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
           lit("\\xlowertwocell").to(function () { return AST.Command.Twocell.LowerTwocell; }),
           lit("\\xcompositemap").to(function () { return AST.Command.Twocell.CompositeMap; })
         ).andl(flit("[")).and(fun(regex(/^[lrud]+/))).andl(flit("]")).andl(flit("{")).and(p.text).andl(flit("}")).to(function (cht) {
-          var textObject = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + cht.tail));
+          var textObject = AST.Object(FP.List.empty, p.toMath("\\labelstyle " + cht.tail));
           return cht.head.head(cht.head.tail, FP.Option.Some(textObject));
         })
       );
@@ -3734,18 +3737,18 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     twocellLabel: memo(function () {
       return or(
         regexLit(/^[0-9a-zA-Z]/).to(function (c) {
-          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          var obj = AST.Object(FP.List.empty, p.toMath("\\twocellstyle " + c));
           return AST.Command.Twocell.Label(FP.Option.empty, obj);
         }),
         regexLit(/^(\\[a-zA-Z][a-zA-Z0-9]*)/).to(function (c) {
-          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + c));
+          var obj = AST.Object(FP.List.empty, p.toMath("\\twocellstyle " + c));
           return AST.Command.Twocell.Label(FP.Option.empty, obj);
         }),
         lit("{").andr(fun(opt(p.nudge))).andl(flit("*")).and(p.object).andl(flit("}")).to(function (no) {
           return AST.Command.Twocell.Label(no.head, no.tail);
         }),
         lit("{").andr(fun(opt(p.nudge))).and(p.text).andl(felem("}")).to(function (nt) {
-          var obj = AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + nt.tail));
+          var obj = AST.Object(FP.List.empty, p.toMath("\\twocellstyle " + nt.tail));
           return AST.Command.Twocell.Label(nt.head, obj);
         })
       );
@@ -3784,7 +3787,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         }),
         success("no arrow label").to(function () {
           // TODO 無駄な空描画処理をなくす。
-          return AST.Command.Twocell.Arrow.WithOrientation('', AST.Object(FP.List.empty, p.toMath("\\scriptstyle{}")));
+          return AST.Command.Twocell.Arrow.WithOrientation('', AST.Object(FP.List.empty, p.toMath("\\twocellstyle{}")));
         })
       );
     }),
@@ -3795,7 +3798,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return or(
         lit("*").andr(p.object),
         p.text().to(function (t) {
-          return AST.Object(FP.List.empty, p.toMath("\\scriptstyle " + t));
+          return AST.Object(FP.List.empty, p.toMath("\\twocellstyle " + t));
         })
       );
     }),
