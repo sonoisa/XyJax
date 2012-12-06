@@ -30,6 +30,62 @@
 
 
 \[
+\xymatrix{
+R \ar@<1ex>[r] \ar@<-1ex>[r] &
+U \ar[r] &
+F
+}
+\]
+
+\[
+\begin{xy}
+*={\bullet} \PATH
+~={**@{-}}
+~>{|>*@{>}}
+~+{|*@{/}}
+'(10,1)*={\bullet} <3pt> '(20,-2)*={\bullet} (30,0)*={\bullet}
+\end{xy}
+\]
+
+\[
+\begin{xy}
+<4pc,0pc>:(0,0)
+*+\txt{base}="base"
+\PATH
+~={**@{-} ?>*@{>}}
+`l   (-1,-1)*{A} <5pt> ^a
+`    ( 1,-1)*{B} ^b
+`_ul ( 1, 0)*{C} ^c
+`ul^l "base" ^d
+"base" ^e
+\PATH
+~={**@{-} ?>*@{>}}
+`l   (-1,-1)*{A} ^a
+`    ( 1,-1)*{B} ^b
+`_ul ( 1, 0)*{C} ^c
+`ul^l "base" ^d
+"base" ^e
+\end{xy}
+\]
+
+<!--
+\[
+\xymatrix{
+(f_1)_*x_1 \ar[r]_a \ar[d]_{(f_1)_*b_1} & (f_2)_*x_2 \ar[d]^{(f_2)_*b_2} \\
+(f_1)_*x'_1 \ar[r]^{a'} & (f_2)_*x'_2.
+}
+\]
+
+\[
+\newdir{m}{!/4.5pt/@{|}*:(1,-.2)@^{>}*:(1,.2)@_{>}}
+\begin{xy}
+0*+{A}="a", <5pc, 1pc>*+{B}="b"
+\ar @{=m} "a";"b"
+\end{xy}
+\]
+
+
+\[
 \newcommand\nt[1]{\langle\text{#1}\rangle}
 \newcommand\from{\leftarrow}
 \begin{array}{clcll}\hline
@@ -45,7 +101,7 @@
 \end{array}
 \]
 
-<!-- -->
+
 
 \[
 \newdir{m}{!/4.5pt/@{|}*:(1,-.2)@^{>}*:(1,.2)@_{>}}
