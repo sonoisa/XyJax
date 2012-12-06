@@ -4530,7 +4530,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       AST.xypic.objectmargin = xypic.length2em("3pt");
       AST.xypic.objectwidth = xypic.length2em("0pt");
       AST.xypic.objectheight = xypic.length2em("0pt");
-      AST.xypic.labelmargin = xypic.length2em("5pt");
+      AST.xypic.labelmargin = xypic.length2em("2.5pt");
       AST.xypic.turnradius = xypic.length2em("10pt");
       AST.xypic.lineElementLength = xypic.length2em("5pt");
     },
@@ -13889,14 +13889,45 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         var lastCurve = env.lastCurve;
         var angle;
         if (!lastCurve.isNone) {
-          angle = lastCurve.angle(t) + Math.PI/2;
+          angle = lastCurve.angle(t) + Math.PI/2 + (labelmargin > 0? 0 : Math.PI);
         } else {
           angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
         }
-        env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+        // env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
+        
+        var c = env.c;
+        
+        var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
+        this.it.toDropShape(subcontext);
+        var labelShape = subcontext.shape;
+        var bbox = labelShape.getBoundingBox();
+        if (bbox !== undefined) {
+          var x = bbox.x - c.x;
+          var y = bbox.y - c.y;
+          var l = bbox.l;
+          var r = bbox.r;
+          var u = bbox.u;
+          var d = bbox.d;
+          
+          var cos = Math.cos(angle);
+          var sin = Math.sin(angle);
+          var delta = Math.min(
+            (x - l) * cos + (y - d) * sin,
+            (x - l) * cos + (y + u) * sin,
+            (x + r) * cos + (y - d) * sin,
+            (x + r) * cos + (y + u) * sin
+          );
+          
+          var margin = Math.abs(labelmargin) - delta;
+          
+          env.c = env.c.move(c.x + margin * cos, c.y + margin * sin);
+          context.appendShapeToFront(xypic.Shape.TranslateShape(margin * cos, margin * sin, labelShape));
+        }
+      } else {
+        this.it.toDropShape(context);
       }
       var lastCurve = env.lastCurve;
-      this.it.toDropShape(context);
+      
       if (this.shouldSliceHole && lastCurve.isDefined && t !== undefined) {
         lastCurve.sliceHole(env.c, t);
       }
