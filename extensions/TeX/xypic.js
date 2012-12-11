@@ -101,17 +101,17 @@ MathJax.Extension.xypic.signalHandler.chainSignal("TeX Xy-pic Require", ["Functi
 MathJax.Extension.xypic.signalHandler.chainSignal("HTML-CSS Xy-pic Config Require", ["TeX Xy-pic Ready", "HTML-CSS Jax Ready"]);
 
 // "SVG Xy-pic Config" depends on "TeX Xy-pic" and "SVG Jax".
-//MathJax.Extension.xypic.signalHandler.chainSignal("SVG Xy-pic Config Require", ["TeX Xy-pic Ready", "SVG Jax Ready"]);
+MathJax.Extension.xypic.signalHandler.chainSignal("SVG Xy-pic Config Require", ["TeX Xy-pic Ready", "SVG Jax Ready"]);
 
 // "Device-Independent Xy-pic" depends on "TeX Xy-pic" OR "SVG Jax".
 MathJax.Extension.xypic.signalHandler.chainSignal("Device-Independent Xy-pic Require", ["HTML-CSS Xy-pic Config Ready"]);
-//MathJax.Extension.xypic.signalHandler.chainSignal("Device-Independent Xy-pic Require", ["SVG Xy-pic Config Ready"]);
+MathJax.Extension.xypic.signalHandler.chainSignal("Device-Independent Xy-pic Require", ["SVG Xy-pic Config Ready"]);
 
 // "HTML-CSS Xy-pic" depends on "HTML-CSS Xy-pic Config" and "Device-Independent Xy-pic".
 MathJax.Extension.xypic.signalHandler.chainSignal("HTML-CSS Xy-pic Require", ["HTML-CSS Xy-pic Config Ready", "Device-Independent Xy-pic Ready"]);
 
 // "SVG Xy-pic" depends on "SVG Xy-pic Config" and "Device-Independent Xy-pic".
-//MathJax.Extension.xypic.signalHandler.chainSignal("SVG Xy-pic Require", ["SVG Xy-pic Config Ready", "Device-Independent Xy-pic Ready"]);
+MathJax.Extension.xypic.signalHandler.chainSignal("SVG Xy-pic Require", ["SVG Xy-pic Config Ready", "Device-Independent Xy-pic Ready"]);
 
 MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
   var FP = MathJax.Extension.fp;
@@ -146,6 +146,24 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       return tex_formatError(err, math, displaystyle, script);
     }
   }
+  
+  xypic.memoize = function (object, funcName) {
+    var func = object[funcName];
+    var memo = function () {
+        var value = func.call(this);
+        var constFunc = function () {
+            return value;
+        }
+        constFunc.reset = reset;
+        object[funcName] = constFunc;
+        return value;
+    }
+    var reset = function () {
+        object[funcName] = memo;
+    }
+    memo.reset = reset;
+    reset();
+  };
   
   AST.xypic = MML.mbase.Subclass({
     Init: function (cmd) {
@@ -4011,34 +4029,13 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Config Require",function () {
   MathJax.Hub.Startup.signal.Post("HTML-CSS Xy-pic Config Ready");
 });
 
-/*
 MathJax.Hub.Register.StartupHook("SVG Xy-pic Config Require",function () {
-  var FP = MathJax.Extension.fp;
-  var MML = MathJax.ElementJax.mml;
-  var SVG = MathJax.OutputJax.SVG;
-  var HUB = MathJax.Hub;
-  var xypic = MathJax.Extension.xypic;
-  var AST = xypic.AST;
-  
-  //xypic.length2em = function (len) { return SVG.length2em(len); }
-  //xypic.Em = function (x) { return SVG.Em(x); }
-  //xypic.em = SVG.em;
-  //xypic.em2px = function (n) { return Math.round(n * SVG.em * 100) / 100; }
-  //xypic.axis_height = SVG.TeX.axis_height;
-  
   MathJax.Hub.Startup.signal.Post("SVG Xy-pic Config Ready");
 });
-*/
 
 MathJax.Hub.Register.StartupHook("Device-Independent Xy-pic Require",function () {
-  MathJax.Hub.Startup.signal.Post("Device-Independent Xy-pic Ready");
-});
-
-
-MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   var FP = MathJax.Extension.fp;
   var MML = MathJax.ElementJax.mml;
-  var HTMLCSS = MathJax.OutputJax["HTML-CSS"];
   var HUB = MathJax.Hub;
   var xypic = MathJax.Extension.xypic;
   var AST = xypic.AST;
@@ -4046,8 +4043,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   var SVGNS = "http://www.w3.org/2000/svg";
   var XHTMLNS = "http://www.w3.org/1999/xhtml";
   var XLINKNS = "http://www.w3.org/1999/xlink";
-  var VMLNS = "urn:schemas-microsoft-com:vml";
-  var vmlns = "mjxvml";
+  
   
   // override MathJax.Hub.formatError function to display runtime error.
   var hub_formatError = HUB.formatError;
@@ -4058,28 +4054,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       hub_formatError.apply(HUB, [script, err]);
       HUB.config.errorSettings.message = origMessage;
     } else {
-      //throw err;
+      throw err;
       hub_formatError.apply(HUB, [script, err]);
     }
   }
   
-  var memoize = function (object, funcName) {
-    var func = object[funcName];
-    var memo = function () {
-        var value = func.call(this);
-        var constFunc = function () {
-            return value;
-        }
-        constFunc.reset = reset;
-        object[funcName] = constFunc;
-        return value;
-    }
-    var reset = function () {
-        object[funcName] = memo;
-    }
-    memo.reset = reset;
-    reset();
-  }
+  var memoize = xypic.memoize;
+  
+  AST.xypic.Augment({}, {
+    lengthResolution: 128,
+    interpolationResolution: 5,
+    machinePrecision: 1e-12
+  });
   
   xypic.DirRepository = MathJax.Object.Subclass({
     Init: function () {
@@ -4268,11 +4254,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   // user defined shapes are global in scope.
-  var modifierRepository = xypic.ModifierRepository();
-  var dirRepository = xypic.DirRepository();
+  xypic.repositories = MathJax.Object.Subclass({});
   
-  var svgForDebug;
-  var svgForTestLayout;
+  xypic.repositories.modifierRepository = xypic.ModifierRepository();
+  xypic.repositories.dirRepository = xypic.DirRepository();
   
   xypic.Graphics = MathJax.Object.Subclass({}, {
     createElement: function (type) {
@@ -4307,8 +4292,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   xypic.Graphics.SVG.World = xypic.Graphics.SVG.Subclass({
-    Init: function (stack, height, depth, width, strokeWidth, color, def) {
-      this._stack = stack;
+    Init: function (height, depth, width, strokeWidth, color, def) {
       var svg = xypic.Graphics.createElement("svg");
       svg.setAttribute("xmlns", SVGNS);
       svg.setAttribute("version", "1.1");
@@ -4338,7 +4322,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.boundingBox = undefined;
       this.color = color;
     },
-    stack: function () { return this._stack; },
     setHeight: function (height) {
       this.svg.style.height = xypic.Em(height);
     },
@@ -4430,7 +4413,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       memoize(this, "getCurrentColor");
     },
-    stack: function () { return this.parent.stack(); },
     remove: function () {
       this.drawArea.parentNode.removeChild(this.drawArea);
     },
@@ -4454,7 +4436,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.color = color;
       memoize(this, "getOrigin");
     },
-    stack: function () { return this.parent.stack(); },
     remove: function () {
       this.drawArea.parentNode.removeChild(this.drawArea);
     },
@@ -4470,8 +4451,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   });
   
   xypic.Graphics.Augment({}, {
-    createSVG: function (stack, height, depth, width, strokeWidth, color, def) {
-      return xypic.Graphics.SVG.World(stack, height, depth, width, strokeWidth, color, def);
+    createSVG: function (height, depth, width, strokeWidth, color, def) {
+      return xypic.Graphics.SVG.World(height, depth, width, strokeWidth, color, def);
     }
   });
   
@@ -4510,131 +4491,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       } else {
         this.shape = xypic.Shape.CompositeShape(this.shape, shape);
       }
-    }
-  });
-  
-  // HTML-CSS Text Objects
-  var textObjects;
-  
-  AST.xypic.Augment({
-    setupHTMCSSMeasure: function () {
-      xypic.length2em = function (len) { return HTMLCSS.length2em(len); }
-      xypic.Em = function (x) { return HTMLCSS.Em(x); }
-      xypic.em = HTMLCSS.em;
-      xypic.em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
-      xypic.axis_height = HTMLCSS.TeX.axis_height;
-      
-      AST.xypic.strokeWidth = xypic.length2em("0.04em");
-      AST.xypic.thickness = xypic.length2em("0.15em");
-      AST.xypic.jot = xypic.length2em("3pt");
-      AST.xypic.objectmargin = xypic.length2em("3pt");
-      AST.xypic.objectwidth = xypic.length2em("0pt");
-      AST.xypic.objectheight = xypic.length2em("0pt");
-      AST.xypic.labelmargin = xypic.length2em("2.5pt");
-      AST.xypic.turnradius = xypic.length2em("10pt");
-      AST.xypic.lineElementLength = xypic.length2em("5pt");
-    },
-    toHTML: function (span) {
-      if (!xypic.useSVG) {
-        return span;
-      }
-      
-      this.setupHTMCSSMeasure();
-      
-      var p = xypic.length2em("0.2em");
-      var t = AST.xypic.strokeWidth;
-
-      span = this.HTMLcreateSpan(span);
-      var stack = HTMLCSS.createStack(span);
-      
-      var bbox = { h:1, d:0, w:1, lw:0, rw:1 };
-      var H = bbox.h, D = bbox.d, W = bbox.w;
-      var frame = HTMLCSS.createFrame(stack, H + D, 0, W, t, "none");
-      frame.id = "MathJax-frame-" + this.spanID + HTMLCSS.idPostfix;
-      
-      var svg;
-      var color = "black";
-      svg = xypic.Graphics.createSVG(stack, H, D, W, t, color, {
-        viewBox:[0, -xypic.em2px(H + D), xypic.em2px(W), xypic.em2px(H + D)].join(" "),
-        overflow:"visible"
-      });
-      svgForDebug = svg;
-      svgForTestLayout = svg;
-      var scale = HTMLCSS.createBox(stack);
-      scale.appendChild(svg.svg);
-      
-      textObjects = [];
-      
-      var xypicData = this.cmd;
-      if (xypicData) {
-        var env = xypic.Env();
-        
-        var context = xypic.DrawingContext(xypic.Shape.none, env);
-        xypicData.toShape(context);
-        var shape = context.shape;
-        shape.draw(svg);
-        
-        var box = shape.getBoundingBox();
-        if (box !== undefined) {
-          box = xypic.Frame.Rect(
-            0, 0,
-            {
-              l:Math.max(0, -(box.x - box.l)),
-              r:Math.max(0, box.x + box.r),
-              u:Math.max(0, box.y + box.u),
-              d:Math.max(0, -(box.y - box.d))
-            }
-          );
-          
-          svg.setWidth(box.l + box.r + 2 * p);
-          svg.setHeight(box.u + box.d + 2 * p);
-          svg.setAttribute("viewBox", [ xypic.em2px(box.x - box.l - p), -xypic.em2px(box.y + box.u + p), xypic.em2px(box.l + box.r + 2 * p), xypic.em2px(box.u + box.d + 2 * p) ].join(" "));
-          var c = textObjects.length;
-          for (var i = 0; i < c; i++) {
-            var to = textObjects[i];
-            var x = parseFloat(to.getAttribute("x"));
-            var y = parseFloat(to.getAttribute("y"));
-            to.style.left = "" + xypic.em2px(x + box.l + p) + "px";
-            to.style.top = "" + xypic.em2px(y - xypic.axis_height) + "px";
-          }
-          
-          bbox = { h:(box.u + p), d:(box.d + p), w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
-          span.bbox = bbox;
-          D = box.d + p;
-          W = box.l + box.r + 2 * p;
-          H = box.h + p;
-          
-          HTMLCSS.placeBox(scale, 0, xypic.axis_height - D, true);
-          frame.style.width = xypic.Em(W);
-          frame.style.height = xypic.Em(H + D);
-          HTMLCSS.addBox(stack, frame); 
-          HTMLCSS.placeBox(frame, W - 1, -D, true);
-          this.HTMLhandleSpace(span);
-          this.HTMLhandleColor(span);
-        } else {
-          // there is no contents
-          span = span.parentNode;
-          span.removeChild(span.firstChild);
-        }
-      } else {
-        // there is no contents
-        span = span.parentNode;
-        span.removeChild(span.firstChild);
-      }
-      
-      return span;
-    }
-  }, {
-    lengthResolution: 128,
-    interpolationResolution: 5,
-    machinePrecision: 1e-12
-  });
-  
-  AST.xypic.newdir.Augment({
-    toHTML: function (span) {
-      var newdir = this.cmd;
-      dirRepository.put(newdir.dirMain, newdir.compositeObject);
-      return span;
     }
   });
   
@@ -5611,8 +5467,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
-      var down = Math.max(0.759375 + 0.660375, this.down) - 0.660375;
-      var up = - Math.max(0.759375 + 0.660375, this.up) + 0.660375;
+      var scale = xypic.oneem;
+      var down = Math.max(0.759375 + 0.660375, this.down / scale * 1.125) - 0.660375;
+      var up = - Math.max(0.759375 + 0.660375, this.up / scale * 1.125) + 0.660375;
       
       var d;
       d = "M" + xypic.em2px(-0.0675) + " " + xypic.em2px(down) + 
@@ -5697,11 +5554,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         fill:this.color, 
         stroke:this.color, 
         "stroke-width":"0pt", 
-        transform:"translate(" + xypic.em2px(this.x) + "," + xypic.em2px(-this.y) +") rotate(" + (-this.degree) + ")"
+        transform:"translate(" + xypic.em2px(this.x) + "," + xypic.em2px(-this.y) +") rotate(" + (-this.degree) + ") scale(" + (scale / 1.125) + ")"
       });
     },
     getBoundingBox: function () {
-      return xypic.Frame.Rect(this.x, this.y, { l:0.308, r:0.308, u:Math.max(0.759375 + 0.660375, this.up), d:Math.max(0.759375 + 0.660375, this.down) }).rotate(this.degree * Math.PI / 180);
+      var scale = xypic.oneem;
+      return xypic.Frame.Rect(this.x, this.y, { l:0.274 * scale, r:0.274 * scale, u:Math.max((0.759375 + 0.660375) * scale / 1.125, this.up), d:Math.max((0.759375 + 0.660375) * scale / 1.125, this.down) }).rotate(this.degree * Math.PI / 180);
     },
     toString: function () {
       return "LeftBrace[x:" + this.x + ", y:" + this.y + ", up:" + this.up + ", down:" + this.down + "]";
@@ -5718,7 +5576,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       memoize(this, "getBoundingBox");
     },
     draw: function (svg) {
-      var down = Math.max(0.660375, this.height / 2) - 0.660375;
+      var scale = xypic.oneem;
+      var down = Math.max(0.660375, this.height / 2 / scale * 1.125) - 0.660375;
       var up = -down;
       
       var d;
@@ -5769,17 +5628,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         fill:this.color, 
         stroke:this.color, 
         "stroke-width":"0pt", 
-        transform:"translate(" + xypic.em2px(this.x) + "," + xypic.em2px(-this.y) +") rotate(" + (-this.degree) + ")"
+        transform:"translate(" + xypic.em2px(this.x) + "," + xypic.em2px(-this.y) +") rotate(" + (-this.degree) + ") scale(" + (scale / 1.125) + ")"
       });
     },
     getBoundingBox: function () {
-      return xypic.Frame.Rect(this.x, this.y, { l:0.0675, r:0.308, u:Math.max(0.660375, this.height / 2), d:Math.max(0.660375, this.height / 2) }).rotate(this.degree * Math.PI / 180);
+      var scale = xypic.oneem;
+      return xypic.Frame.Rect(this.x, this.y, { l:0.06 * scale, r:0.274 * scale, u:Math.max(0.660375 * scale / 1.125, this.height / 2), d:Math.max(0.660375 * scale / 1.125, this.height / 2) }).rotate(this.degree * Math.PI / 180);
     },
     toString: function () {
       return "LeftBrace[x:" + this.x + ", y:" + this.y + ", up:" + this.up + ", down:" + this.down + "]";
     }
   });
-
+  
   xypic.Shape.TextShape = xypic.Shape.Subclass({
     Init: function (c, math, svgForTestLayout) {
       this.c = c;
@@ -5803,102 +5663,6 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var H = originalBBox.H;
       var D = originalBBox.D;
       return xypic.Frame.Point(c.x, c.y - (H - D) / 2);
-    },
-    _draw: function (svg, test) {
-      var math = this.math;
-      var span, stack, base;
-      math.setTeXclass();
-      
-      // padding
-      var p = xypic.length2em("0.1em");
-      var mathSpan = HTMLCSS.Element("span", {
-        className:"MathJax", 
-        style:{ "text-align":"center", role:"textbox", "aria-readonly":"true", position:"absolute", color:svg.getCurrentColor() /*, "border":"0.1px dashed" */ }
-      });
-      
-      svg.stack().appendChild(mathSpan);
-      
-      // clear spanID for connecting objects.
-      var clearSpanId = function (mml) {
-        if (mml) {
-          if (mml.hasOwnProperty("spanID")) { delete mml.spanID; }
-          if (mml.data) {
-            for (var i = 0, n = mml.data.length; i < n; i++) {
-              clearSpanId(mml.data[i]);
-            }
-          }
-        }
-      }
-      
-      clearSpanId(math);
-      var span = math.HTMLcreateSpan(mathSpan);
-      stack = HTMLCSS.createStack(span);
-      base = HTMLCSS.createBox(stack);
-      math.HTMLmeasureChild(0, base);
-      var H = base.bbox.h + p, D = base.bbox.d + p, W = base.bbox.w + 2 * p;
-      var frame = HTMLCSS.createFrame(stack, H + D, 0, W, 0, "none");
-      frame.id = "MathJax-frame-" + math.spanID + HTMLCSS.idPostfix;
-//      stack.style.border = "solid 0.1px pink";
-//      base.style.border = "solid 0.1px pink";
-//      frame.style.border = "solid 0.1px pink";
-      HTMLCSS.addBox(stack, frame);
-      stack.insertBefore(frame, base);
-      frame.style.width = xypic.em2px(W);
-      frame.style.height = xypic.em2px(H + D);
-      HTMLCSS.placeBox(frame, 0, -D, true);
-      HTMLCSS.placeBox(base, p, 0);
-      math.HTMLhandleSpace(span);
-      math.HTMLhandleColor(span);
-      
-      var spanHeight = span.offsetHeight;
-      var halfHD = (H + D) / 2;
-      var halfW = W / 2;
-      
-      var c = this.c;
-      this.originalBBox = { H:H, D:D, W:W };
-      
-      if (!test) {
-        var origin = svg.getOrigin();
-        mathSpan.setAttribute("x", c.x - halfW - origin.x);
-        mathSpan.setAttribute("y", -c.y - halfHD - origin.y - stack.offsetTop / HTMLCSS.em + H);
-        textObjects.push(mathSpan);
-
-/*        
-        svg.createSVGElement("rect", {
-          x:xypic.em2px(c.x - halfW),
-          y:-xypic.em2px(c.y - (H - D) / 2),
-          width:xypic.em2px(W),
-          height:0.1,
-          stroke:"green", "stroke-width":0.3
-        });
-        
-        console.log("span.top:" + span.offsetTop + ", " + (span.offsetTop / HTMLCSS.em) + "em");
-        console.log("span.height:" + span.offsetHeight + ", " + (span.offsetHeight / HTMLCSS.em) + "em");
-        console.log("stack.top:" + stack.offsetTop + ", " + (stack.offsetTop / HTMLCSS.em) + "em");
-        console.log("stack.height:" + stack.offsetHeight + ", " + (stack.offsetHeight / HTMLCSS.em) + "em");
-        console.log("frame.top:" + frame.offsetTop + ", " + (frame.offsetTop / HTMLCSS.em) + "em");
-        console.log("frame.height:" + frame.offsetHeight + ", " + (frame.offsetHeight / HTMLCSS.em) + "em");
-        console.log("base.top:" + base.offsetTop + ", " + (base.offsetTop / HTMLCSS.em) + "em");
-        console.log("base.height:" + base.offsetHeight + ", " + (base.offsetHeight / HTMLCSS.em) + "em");
-        console.log("p:" + xypic.em2px(p) + ", " + p + "em");
-        console.log("D:" + xypic.em2px(D) + ", " + D + "em");
-        console.log("H:" + xypic.em2px(H) + ", " + H + "em");
-        console.log("d:" + xypic.em2px(base.bbox.d) + ", " + base.bbox.d + "em");
-        console.log("h:" + xypic.em2px(base.bbox.h) + ", " + base.bbox.h + "em");
-        
-        svg.createSVGElement("rect", {
-          x:xypic.em2px(c.x - halfW),
-          y:-xypic.em2px(c.y + halfHD),
-          width:xypic.em2px(W),
-          height:xypic.em2px(H + D),
-          stroke:"green", "stroke-width":0.5
-        });
-*/
-      } else {
-        svg.stack().removeChild(mathSpan);
-      }
-      
-      return c.toRect({ u:halfHD, d:halfHD, l:halfW, r:halfW });
     },
     toString: function () {
       return "TextShape[c:" + this.c.toString() + ", math:" + this.math.toString() + "]";
@@ -5925,16 +5689,20 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.513, r:0, d:0.258, u:0.258 }; },
-    r: 0.240,
+    getBox: function () { var scale = xypic.oneem; return { l:0.456 * scale, r:0, d:0.229 * scale, u:0.229 * scale }; },
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.213 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
       var gd = svg.createGroup(svg.transformBuilder().rotateDegree(10));
       gu.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -5946,19 +5714,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.57, r:0, d:0.302, u:0.302 }; }, 
-    r: 0.325,
+    getBox: function () { var scale = xypic.oneem; return { l:0.507 * scale, r:0, d:0.268 * scale, u:0.268 * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.325 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var gu = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
       var gd = svg.createGroup(svg.transformBuilder().rotateDegree(15));
       gu.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("line", {
-        x1:xypic.em2px(0), y1:0, x2:xypic.em2px(-0.57), y2:0
+        x1:0, y1:0, x2:xypic.em2px(-0.507 * scale), y2:0
       });
       gd.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -5970,10 +5742,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55, r:0, d:0, u:0.165 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale, r:0, d:0, u:0.147 * scale }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -5985,10 +5758,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55, r:0, d:0.165, u:0 }; },
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale, r:0, d:0.147 * scale, u:0 }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6000,13 +5774,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55, r:0, d:0.165, u:0.165 }; },
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale, r:0, d:0.147 * scale, u:0.147 * scale }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -6018,16 +5793,20 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.513, d:0.258, u:0.258 }; }, 
-    r: 0.240,
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.456 * scale, d:0.229 * scale, u:0.229  * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.213 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var gu = svg.createGroup(svg.transformBuilder().rotateDegree(10)); 
       var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
       gu.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6039,19 +5818,23 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.57, d:0.302, u:0.302 }; }, 
-    r: 0.325,
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.507 * scale, d:0.268 * scale, u:0.268 * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.325 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var gu = svg.createGroup(svg.transformBuilder().rotateDegree(15));
       var gd = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
       gu.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("line", {
-        x1:xypic.em2px(0), y1:0, x2:xypic.em2px(0.57), y2:0
+        x1:0, y1:0, x2:xypic.em2px(0.507 * scale), y2:0
       });
       gd.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6063,10 +5846,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55, d:0, u:0.165 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale, d:0, u:0.147 * scale }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -6078,10 +5862,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55, d:0.165, u:0 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale, d:0.147 * scale, u:0 }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6093,13 +5878,14 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55, d:0.165, u:0.165 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale, d:0.147 * scale, u:0.147 * scale }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6511,9 +6297,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     getBox: function () { return { l:0, r:0, u:AST.xypic.thickness, d:AST.xypic.thickness }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var vshift = xypic.em2px(AST.xypic.thickness);
       var lineLen = xypic.em2px(AST.xypic.thickness);
-      var dasharray = "1 " + lineLen;
+      var dasharray = AST.xypic.dottedDasharray;
       svg.createSVGElement("line", {
         x1:0, y1:vshift, x2:lineLen, y2:vshift,
         "stroke-dasharray": dasharray
@@ -6541,7 +6328,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     drawDelegate: function (svg) {
       var vshift = xypic.em2px(0.5 * AST.xypic.thickness);
       var lineLen = xypic.em2px(AST.xypic.thickness);
-      var dasharray = "1 " + lineLen;
+      var dasharray = AST.xypic.dottedDasharray;
       svg.createSVGElement("line", {
         x1:0, y1:vshift, x2:lineLen, y2:vshift,
       "stroke-dasharray": dasharray
@@ -6562,8 +6349,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     },
     getBox: function () { return { l:0, r:0, u:0, d:0 }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var lineLen = xypic.em2px(AST.xypic.thickness);
-      var dasharray = "1 " + lineLen;
+      var dasharray = AST.xypic.dottedDasharray;
       svg.createSVGElement("line", {
         x1:0, y1:0, x2:lineLen, y2:0,
         "stroke-dasharray": dasharray
@@ -6666,21 +6454,22 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55 + 2 * AST.xypic.thickness, r:0, d:0.165, u:0.165 }; },
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale + 2 * AST.xypic.thickness, r:0, d:0.147 * scale, u:0.147 * scale }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -6692,15 +6481,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55 + 2 * AST.xypic.thickness, r:0, d:0, u:0.165 }; },
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale + 2 * AST.xypic.thickness, r:0, d:0, u:0.147 * scale }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -6712,15 +6502,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55 + 2 * AST.xypic.thickness, r:0, d:0.165, u:0 }; },
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale + 2 * AST.xypic.thickness, r:0, d:0.147 * scale, u:0 }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6732,25 +6523,29 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.513 + 2 * AST.xypic.thickness, r:0, d:0.258, u:0.258 }; },
-    r: 0.240,
+    getBox: function () { var scale = xypic.oneem; return { l:0.456 * scale + 2 * AST.xypic.thickness, r:0, d:0.229 * scale, u:0.229 * scale }; },
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.213 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var gu1 = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
       var gd1 = svg.createGroup(svg.transformBuilder().rotateDegree(10));
       gu1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       var gu2 = svg.createGroup(svg.transformBuilder().translate(-2 * t, 0).rotateDegree(-10));
       var gd2 = svg.createGroup(svg.transformBuilder().translate(-2 * t, 0).rotateDegree(10));
       gu2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6762,28 +6557,32 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.57 + 2 * AST.xypic.thickness, r:0, d:0.302, u:0.302 }; }, 
-    r: 0.325,
+    getBox: function () { var scale = xypic.oneem; return { l:0.507 * scale + 2 * AST.xypic.thickness, r:0, d:0.268 * scale, u:0.268 * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.325 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var gu1 = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
       var gd1 = svg.createGroup(svg.transformBuilder().rotateDegree(15));
       gu1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       var gu2 = svg.createGroup(svg.transformBuilder().translate(-2 * t, 0).rotateDegree(-15));
       var gd2 = svg.createGroup(svg.transformBuilder().translate(-2 * t, 0).rotateDegree(15));
       gu2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("line", {
-        x1:xypic.em2px(0), y1:0, x2:xypic.em2px(-0.57 - 2 * t), y2:0
+        x1:0, y1:0, x2:xypic.em2px(-0.507 * scale - 2 * t), y2:0
       });
     }
   });
@@ -6795,21 +6594,22 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55 + 2 * AST.xypic.thickness, d:0.165, u:0.165 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale + 2 * AST.xypic.thickness, d:0.147 * scale, u:0.147 * scale }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6821,15 +6621,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55 + 2 * AST.xypic.thickness, d:0, u:0.165 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale + 2 * AST.xypic.thickness, d:0, u:0.147 * scale }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -6841,15 +6642,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55 + 2 * AST.xypic.thickness, d:0.165, u:0 }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale + 2 * AST.xypic.thickness, d:0.147 * scale, u:0 }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6861,25 +6663,29 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.513 + 2 * AST.xypic.thickness, d:0.258, u:0.258 }; }, 
-    r: 0.240,
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.456 + scale + 2 * AST.xypic.thickness, d:0.229 * scale, u:0.229 * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.213 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var gu1 = svg.createGroup(svg.transformBuilder().translate(2 * t, 0).rotateDegree(10)); 
       var gd1 = svg.createGroup(svg.transformBuilder().translate(2 * t, 0).rotateDegree(-10));
       gu1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       var gu2 = svg.createGroup(svg.transformBuilder().rotateDegree(10)); 
       var gd2 = svg.createGroup(svg.transformBuilder().rotateDegree(-10));
       gu2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -6891,28 +6697,32 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.57 + 2 * AST.xypic.thickness, d:0.302, u:0.302 }; }, 
-    r: 0.325,
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.507 * scale + 2 * AST.xypic.thickness, d:0.268 * scale, u:0.268 * scale }; }, 
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.325 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var gu1 = svg.createGroup(svg.transformBuilder().translate(2 * t, 0).rotateDegree(15)); 
       var gd1 = svg.createGroup(svg.transformBuilder().translate(2 * t, 0).rotateDegree(-15));
       gu1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd1.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       var gu2 = svg.createGroup(svg.transformBuilder().rotateDegree(15)); 
       var gd2 = svg.createGroup(svg.transformBuilder().rotateDegree(-15));
       gu2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd2.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("line", {
-        x1:xypic.em2px(0), y1:0, x2:xypic.em2px(0.57 + 2 * t), y2:0
+        x1:0, y1:0, x2:xypic.em2px(0.507 * scale + 2 * t), y2:0
       });
     }
   });
@@ -7140,17 +6950,18 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55, r:0, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale, r:0, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var l = xypic.em2px(0.5 * AST.xypic.lineElementLength);
       svg.createSVGElement("line", {
         x1:0, y1:l, x2:0, y2:-l
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -7162,8 +6973,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0.55 + 2 * AST.xypic.thickness, r:0, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0.489 * scale + 2 * AST.xypic.thickness, r:0, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var l = xypic.em2px(0.5 * AST.xypic.lineElementLength);
       svg.createSVGElement("line", {
@@ -7171,16 +6983,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.25) - hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(-0.55) - hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + (-hshift) + ",0 Q" + (xypic.em2px(-0.222 * scale) - hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(-0.489 * scale) - hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
     }
   });
@@ -7192,18 +7004,19 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var l = xypic.em2px(0.5 * AST.xypic.lineElementLength);
       svg.createSVGElement("line", {
         x1:0, y1:l, x2:0, y2:-l
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -7215,8 +7028,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:0, r:0.55 + 2 * AST.xypic.thickness, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
+    getBox: function () { var scale = xypic.oneem; return { l:0, r:0.489 * scale + 2 * AST.xypic.thickness, u:0.5 * AST.xypic.lineElementLength, d:0.5 * AST.xypic.lineElementLength }; }, 
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var t = AST.xypic.thickness;
       var l = xypic.em2px(0.5 * AST.xypic.lineElementLength);
       svg.createSVGElement("line", {
@@ -7224,16 +7038,16 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       });
       var hshift = xypic.em2px(2 * t);
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(-0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(-0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(-0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.25) + hshift) + "," + xypic.em2px(0.023) + " " + (xypic.em2px(0.55) + hshift) + "," + xypic.em2px(0.165)
+        d:"M" + hshift + ",0 Q" + (xypic.em2px(0.222 * scale) + hshift) + "," + xypic.em2px(0.020 * scale) + " " + (xypic.em2px(0.489 * scale) + hshift) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       svg.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(0.25) + "," + xypic.em2px(0.023) + " " + xypic.em2px(0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(0.222 * scale) + "," + xypic.em2px(0.020 * scale) + " " + xypic.em2px(0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
     }
   });
@@ -7265,22 +7079,27 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:AST.xypic.lineElementLength, r:AST.xypic.lineElementLength, d:0.258, u:0.258 }; },
-    r: 0.240,
+    getBox: function () { var scale = xypic.oneem; return { l:AST.xypic.lineElementLength, r:AST.xypic.lineElementLength, d:0.229 * scale, u:0.229 * scale }; },
+    getRadius: function () {
+      var scale = xypic.oneem;
+      return 0.213 * scale;
+    },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var halfLen = AST.xypic.lineElementLength;
       var hshift = xypic.em2px(halfLen);
       var v = 0.5 * AST.xypic.thickness;
       var vshift = xypic.em2px(v);
-      var delta = xypic.em2px(Math.sqrt(this.r * this.r - v * v));
+      var r = this.getRadius();
+      var delta = xypic.em2px(Math.sqrt(r * r - v * v));
       
       var gu = svg.createGroup(svg.transformBuilder().translate(halfLen, 0).rotateDegree(-10));
       var gd = svg.createGroup(svg.transformBuilder().translate(halfLen, 0).rotateDegree(10));
       gu.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + "," + xypic.em2px(-0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(-0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + "," + xypic.em2px(-0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(-0.147 * scale)
       });
       gd.createSVGElement("path", {
-        d:"M0,0 Q" + xypic.em2px(-0.25) + ","+xypic.em2px(0.023) + " " + xypic.em2px(-0.55) + "," + xypic.em2px(0.165)
+        d:"M0,0 Q" + xypic.em2px(-0.222 * scale) + ","+xypic.em2px(0.020 * scale) + " " + xypic.em2px(-0.489 * scale) + "," + xypic.em2px(0.147 * scale)
       });
       svg.createSVGElement("path", {
         d:"M" + (-hshift) + "," + vshift + " L" + (hshift - delta) + "," + vshift + 
@@ -7296,8 +7115,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       this.angle = angle;
       memoize(this, "getBoundingBox");
     },
-    getBox: function () { return { l:AST.xypic.lineElementLength, r:AST.xypic.lineElementLength, d:0.5 * AST.xypic.thickness, u:0.5 * AST.xypic.thickness }; },
+    getBox: function () { var scale = xypic.oneem; return { l:AST.xypic.lineElementLength, r:AST.xypic.lineElementLength, d:0.5 * AST.xypic.thickness, u:0.5 * AST.xypic.thickness }; },
     drawDelegate: function (svg) {
+      var scale = xypic.oneem;
       var hshift = xypic.em2px(AST.xypic.lineElementLength);
       var vshift = xypic.em2px(0.5 * AST.xypic.thickness);
       svg.createSVGElement("path", {
@@ -7949,12 +7769,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               case "3":
                 vshift = thickness;
                 this.drawParallelDottedCurve(svg, thickness, vshift)
-                this.drawPrimitive(svg, "1 "+xypic.em2px(thickness));
+                this.drawPrimitive(svg, AST.xypic.dottedDasharray);
                 break;
                 
               default:
                 vshift = 0;
-                this.drawPrimitive(svg, "1 "+xypic.em2px(thickness));
+                this.drawPrimitive(svg, AST.xypic.dottedDasharray);
                 break;
             }
             break;
@@ -9580,11 +9400,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             break;
           case '.':
           case '..':
-            this.drawStraightLine(svg, s, e, shift, angle, t, variant, "1 " + xypic.em2px(t));
+            this.drawStraightLine(svg, s, e, shift, angle, t, variant, AST.xypic.dottedDasharray);
             break;
           case ':':
           case '::':
-            this.drawStraightLine(svg, s, e, shift, angle, t, "2", "1 " + xypic.em2px(t));
+            this.drawStraightLine(svg, s, e, shift, angle, t, "2", AST.xypic.dottedDasharray);
             break;
           case '--':
           case '==':
@@ -9952,10 +9772,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       var xmin = this.p0.x;
       var xmax = this.p1.x;
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmax)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmax)),
-        "stroke-width":xypic.em2px(0.02), stroke:"red"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"red"
       });
     }
   });
@@ -9991,15 +9811,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       var xmin = this.cp0.x
       var xmax = this.cp2.x
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmin)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmin)),
-        "stroke-width":xypic.em2px(0.02), stroke:"blue"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"blue"
       });
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmax)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmax)),
-        "stroke-width":xypic.em2px(0.02), stroke:"red"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"red"
       });
     }
   });
@@ -10039,15 +9859,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
       var xmin = this.cp0.x
       var xmax = this.cp3.x
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmin)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmin)),
-        "stroke-width":xypic.em2px(0.02), stroke:"blue"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"blue"
       });
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmax)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmax)),
-        "stroke-width":xypic.em2px(0.02), stroke:"red"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"red"
       });
     }
   });
@@ -10223,15 +10043,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       var x1 = this.x + this.r * Math.cos(this.angleMax);
       var xmin = x0;
       var xmax = x1;
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmin)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmin)),
-        "stroke-width":xypic.em2px(0.02), stroke:"blue"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"blue"
       });
-      svgForDebug.createSVGElement("line", {
+      xypic.svgForDebug.createSVGElement("line", {
         x1:xypic.em2px(xmin), y1:-xypic.em2px(y(xmin, lmax)),
         x2:xypic.em2px(xmax), y2:-xypic.em2px(y(xmax, lmax)),
-        "stroke-width":xypic.em2px(0.02), stroke:"red"
+        "stroke-width":xypic.em2px(0.02 * xypic.oneem), stroke:"red"
       });
     }
   });
@@ -10242,7 +10062,8 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   xypic.LastCurve.None = xypic.LastCurve.Subclass({
     Init: function () {}, 
     isDefined: false,
-    segments: function () { return []; }
+    segments: function () { return []; },
+    angle: function () { return 0; }
   });
   
   xypic.LastCurve.Augment({}, {
@@ -11371,7 +11192,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.ObjectBox.Text.Augment({
     toDropShape: function (context) {
       var env = context.env;
-      var textShape = xypic.Shape.TextShape(env.c, this.math, svgForTestLayout);
+      var textShape = xypic.Shape.TextShape(env.c, this.math, xypic.svgForTestLayout);
       context.appendShapeToFront(textShape);
       env.c = textShape.getBoundingBox();
       env.originalReferencePoint = textShape.getOriginalReferencePoint();
@@ -11630,7 +11451,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         case '.o':
           var xy = this.radius.xy(context);
           var r = xy.x;
-          shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, r, r, false, color, "1 " + xypic.em2px(t));
+          shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, r, r, false, color, AST.xypic.dottedDasharray);
           break;
           
         case '-o':
@@ -11642,7 +11463,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           
         case '.e':
           var xy = this.radius.xy(context);
-          shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, xy.x, xy.y, false, color, "1 " + xypic.em2px(t));
+          shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, xy.x, xy.y, false, color, AST.xypic.dottedDasharray);
           break;
           
         case '-e':
@@ -11674,10 +11495,10 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         case '.':
           if (convertToEllipse) {
             var xy = this.radius.xy(context);
-            shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, xy.x, xy.y, false, color, "1 " + xypic.em2px(t));
+            shape = xypic.Shape.EllipseShape(x + (right - left) / 2, y + (up - down) / 2, xy.x, xy.y, false, color, AST.xypic.dottedDasharray);
           } else {
             var radius = this.radius.radius(context);
-            shape = xypic.Shape.RectangleShape(x, y, left, right, up, down, radius, false, color, "1 " + xypic.em2px(t));
+            shape = xypic.Shape.RectangleShape(x, y, left, right, up, down, radius, false, color, AST.xypic.dottedDasharray);
           }
           break;
           
@@ -11824,12 +11645,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           switch (this.variant) {
             case "2":
               shape = xypic.Shape.GT2ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.GT3ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
@@ -11846,12 +11667,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           switch (this.variant) {
             case "2":
               shape = xypic.Shape.LT2ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.LT3ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
@@ -11992,12 +11813,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               break;
             case "2":
               shape = xypic.Shape.GTGT2ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.GTGT3ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
@@ -12015,12 +11836,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
               break;
             case "2":
               shape = xypic.Shape.LTLT2ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             case "3":
               shape = xypic.Shape.LTLT3ArrowheadShape(c, angle);
-              var r = shape.r;
+              var r = shape.getRadius();
               env.c = xypic.Frame.Ellipse(c.x, c.y, r, r, r, r);
               break;
             default:
@@ -12086,7 +11907,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
           break;
           
         default:
-          var newdirObj = dirRepository.get(this.main);
+          var newdirObj = xypic.repositories.dirRepository.get(this.main);
           if (newdirObj !== undefined) {
             shape = newdirObj.toDropShape(context);
           } else {
@@ -12648,7 +12469,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Corner.Axis.Augment({
     xy: function (context) {
-      return { x:0, y:xypic.axis_height * xypic.length2em("10pt") };
+      return { x:0, y:AST.xypic.axisHeightLength };
     },
     angle: function (context) {
       return Math.PI / 2;
@@ -12847,7 +12668,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   
   AST.Modifier.Shape.Alphabets.Augment({
     preprocess: function (context, reversedProcessedModifiers) {
-      var modifier = modifierRepository.get(this.alphabets);
+      var modifier = xypic.repositories.modifierRepository.get(this.alphabets);
       if (modifier !== undefined) {
         return modifier.preprocess(context, reversedProcessedModifiers);
       } else {
@@ -12855,7 +12676,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
       }
     },
     modifyShape: function (context, objectShape, restModifiers) {
-      var modifier = modifierRepository.get(this.alphabets);
+      var modifier = xypic.repositories.modifierRepository.get(this.alphabets);
       if (modifier !== undefined) {
         return modifier.modifyShape(context, objectShape, restModifiers);
       }
@@ -12865,7 +12686,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Modifier.Shape.DefineShape.Augment({
     preprocess: function (context, reversedProcessedModifiers) {
       var processedModifiers = reversedProcessedModifiers.reverse();
-      modifierRepository.put(this.shape, AST.Modifier.Shape.CompositeModifiers(processedModifiers));
+      xypic.repositories.modifierRepository.put(this.shape, AST.Modifier.Shape.CompositeModifiers(processedModifiers));
     },
     modifyShape: function (context, objectShape, restModifiers) {
       return this.proceedModifyShape(context, objectShape, restModifiers);
@@ -13279,7 +13100,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Command.Ar.Form.CurveArrow.Augment({
     toShape: function (context) {
       var env = context.env;
-      var cpDist = "" + xypic.length2em(this.dist) * 2 + "em";
+      var cpDist = xypic.em2length(xypic.length2em(this.dist) * 2);
       // the following AST means **\crv{{**@{} ?+/d 2l/}}. too long...
       env.pathActionForBeforeSegment = FP.Option.Some(
         AST.PosDecor(
@@ -13893,10 +13714,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
         } else {
           angle = Math.atan2(c.y - p.y, c.x - p.x) + Math.PI/2;
         }
-        // env.c = env.c.move(env.c.x + labelmargin * Math.cos(angle), env.c.y + labelmargin * Math.sin(angle));
-        
         var c = env.c;
-        
         var subcontext = xypic.DrawingContext(xypic.Shape.none, env);
         this.it.toDropShape(subcontext);
         var labelShape = subcontext.shape;
@@ -13917,9 +13735,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
             (x + r) * cos + (y - d) * sin,
             (x + r) * cos + (y + u) * sin
           );
-          
           var margin = Math.abs(labelmargin) - delta;
-          
           env.c = env.c.move(c.x + margin * cos, c.y + margin * sin);
           context.appendShapeToFront(xypic.Shape.TranslateShape(margin * cos, margin * sin, labelShape));
         }
@@ -14394,12 +14210,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Command.Xymatrix.Entry.SimpleEntry.Augment({
     toShape: function (context) {
       var env = context.env;
-      var defaultWidth = "" + (env.objectmargin + env.objectwidth) + "em";
-      var defaultHeight = "" + (env.objectmargin + env.objectheight) + "em";
+      var defaultWidth = xypic.em2length(env.objectmargin + env.objectwidth);
+      var defaultHeight = xypic.em2length(env.objectmargin + env.objectheight);
       var defaultSizeModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.GrowTo(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         defaultWidth, defaultHeight
       )));
-      var margin = "" + env.objectmargin + "em";
+      var margin = xypic.em2length(env.objectmargin);
       var marginModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.Grow(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         margin, margin
       )));
@@ -14411,12 +14227,12 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   AST.Command.Xymatrix.Entry.EmptyEntry.Augment({
     toShape: function (context) {
       var env = context.env;
-      var defaultWidth = "" + (env.objectmargin + env.objectwidth) + "em";
-      var defaultHeight = "" + (env.objectmargin + env.objectheight) + "em";
+      var defaultWidth = xypic.em2length(env.objectmargin + env.objectwidth);
+      var defaultHeight = xypic.em2length(env.objectmargin + env.objectheight);
       var defaultSizeModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.GrowTo(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         defaultWidth, defaultHeight
       )));
-      var margin = "" + env.objectmargin + "em";
+      var margin = xypic.em2length(env.objectmargin);
       var marginModifier = AST.Modifier.AddOp(AST.Modifier.AddOp.Grow(), AST.Modifier.AddOp.VactorSize(AST.Vector.Abs(
         margin, margin
       )));
@@ -15100,12 +14916,250 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  MathJax.Hub.Startup.signal.Post("Device-Independent Xy-pic Ready");
+});
+
+
+MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
+  var FP = MathJax.Extension.fp;
+  var MML = MathJax.ElementJax.mml;
+  var HTMLCSS = MathJax.OutputJax["HTML-CSS"];
+  var HUB = MathJax.Hub;
+  var xypic = MathJax.Extension.xypic;
+  var AST = xypic.AST;
+  
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var XHTMLNS = "http://www.w3.org/1999/xhtml";
+  var XLINKNS = "http://www.w3.org/1999/xlink";
+  
+  AST.xypic.Augment({
+    setupHTMLCSSMeasure: function () {
+      xypic.length2em = function (len) { return HTMLCSS.length2em(len); }
+      xypic.oneem = xypic.length2em("1em");
+      xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
+      xypic.Em = function (x) { return HTMLCSS.Em(x); }
+      xypic.em = HTMLCSS.em;
+      xypic.em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
+      xypic.axis_height = HTMLCSS.TeX.axis_height;
+      
+      AST.xypic.strokeWidth = xypic.length2em("0.04em");
+      AST.xypic.thickness = xypic.length2em("0.15em");
+      AST.xypic.jot = xypic.length2em("3pt");
+      AST.xypic.objectmargin = xypic.length2em("3pt");
+      AST.xypic.objectwidth = xypic.length2em("0pt");
+      AST.xypic.objectheight = xypic.length2em("0pt");
+      AST.xypic.labelmargin = xypic.length2em("2.5pt");
+      AST.xypic.turnradius = xypic.length2em("10pt");
+      AST.xypic.lineElementLength = xypic.length2em("5pt");
+      AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("10pt");
+      
+      AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
+    },
+    toHTML: function (span) {
+      if (!xypic.useSVG) {
+        return span;
+      }
+      
+      this.setupHTMLCSSMeasure();
+      
+      // HTML-CSS Text Objects
+      var textObjects = [];
+      
+      var p = xypic.length2em("0.2em");
+      var t = AST.xypic.strokeWidth;
+      
+      span = this.HTMLcreateSpan(span);
+      var svgStack = HTMLCSS.createStack(span);
+      
+      xypic.Shape.TextShape.Augment({
+        _draw: function (svg, test) {
+          var math = this.math;
+          var span, stack, base;
+          math.setTeXclass();
+          
+          // padding
+          var p = xypic.length2em("0.1em");
+          var mathSpan = HTMLCSS.Element("span", {
+            className:"MathJax", 
+            style:{ "text-align":"center", "role":"textbox", "aria-readonly":"true", "position":"absolute", color:svg.getCurrentColor() /*, "border":"0.1px dashed" */ }
+          });
+          
+          svgStack.appendChild(mathSpan);
+          
+          // clear spanID for connecting objects.
+          var clearSpanId = function (mml) {
+            if (mml) {
+              if (mml.hasOwnProperty("spanID")) { delete mml.spanID; }
+              if (mml.data) {
+                for (var i = 0, n = mml.data.length; i < n; i++) {
+                  clearSpanId(mml.data[i]);
+                }
+              }
+            }
+          }
+          
+          clearSpanId(math);
+          var span = math.HTMLcreateSpan(mathSpan);
+          stack = HTMLCSS.createStack(span);
+          base = HTMLCSS.createBox(stack);
+          math.HTMLmeasureChild(0, base);
+          var H = base.bbox.h + p, D = base.bbox.d + p, W = base.bbox.w + 2 * p;
+          var frame = HTMLCSS.createFrame(stack, H + D, 0, W, 0, "none");
+          frame.id = "MathJax-frame-" + math.spanID + HTMLCSS.idPostfix;
+    //      stack.style.border = "solid 0.1px pink";
+    //      base.style.border = "solid 0.1px pink";
+    //      frame.style.border = "solid 0.1px pink";
+          HTMLCSS.addBox(stack, frame);
+          stack.insertBefore(frame, base);
+          frame.style.width = xypic.em2px(W);
+          frame.style.height = xypic.em2px(H + D);
+          HTMLCSS.placeBox(frame, 0, -D, true);
+          HTMLCSS.placeBox(base, p, 0);
+          math.HTMLhandleSpace(span);
+          math.HTMLhandleColor(span);
+          
+          var spanHeight = span.offsetHeight;
+          var halfHD = (H + D) / 2;
+          var halfW = W / 2;
+          
+          var c = this.c;
+          this.originalBBox = { H:H, D:D, W:W };
+          
+          if (!test) {
+            var origin = svg.getOrigin();
+            mathSpan.setAttribute("x", c.x - halfW - origin.x);
+            mathSpan.setAttribute("y", -c.y - halfHD - origin.y - stack.offsetTop / HTMLCSS.em + H);
+            textObjects.push(mathSpan);
+            
+    /*        
+            svg.createSVGElement("rect", {
+              x:xypic.em2px(c.x - halfW),
+              y:-xypic.em2px(c.y - (H - D) / 2),
+              width:xypic.em2px(W),
+              height:0.1,
+              stroke:"green", "stroke-width":0.3
+            });
+            
+            console.log("span.top:" + span.offsetTop + ", " + (span.offsetTop / HTMLCSS.em) + "em");
+            console.log("span.height:" + span.offsetHeight + ", " + (span.offsetHeight / HTMLCSS.em) + "em");
+            console.log("stack.top:" + stack.offsetTop + ", " + (stack.offsetTop / HTMLCSS.em) + "em");
+            console.log("stack.height:" + stack.offsetHeight + ", " + (stack.offsetHeight / HTMLCSS.em) + "em");
+            console.log("frame.top:" + frame.offsetTop + ", " + (frame.offsetTop / HTMLCSS.em) + "em");
+            console.log("frame.height:" + frame.offsetHeight + ", " + (frame.offsetHeight / HTMLCSS.em) + "em");
+            console.log("base.top:" + base.offsetTop + ", " + (base.offsetTop / HTMLCSS.em) + "em");
+            console.log("base.height:" + base.offsetHeight + ", " + (base.offsetHeight / HTMLCSS.em) + "em");
+            console.log("p:" + xypic.em2px(p) + ", " + p + "em");
+            console.log("D:" + xypic.em2px(D) + ", " + D + "em");
+            console.log("H:" + xypic.em2px(H) + ", " + H + "em");
+            console.log("d:" + xypic.em2px(base.bbox.d) + ", " + base.bbox.d + "em");
+            console.log("h:" + xypic.em2px(base.bbox.h) + ", " + base.bbox.h + "em");
+            
+            svg.createSVGElement("rect", {
+              x:xypic.em2px(c.x - halfW),
+              y:-xypic.em2px(c.y + halfHD),
+              width:xypic.em2px(W),
+              height:xypic.em2px(H + D),
+              stroke:"green", "stroke-width":0.5
+            });
+         */
+          } else {
+            svgStack.removeChild(mathSpan);
+          }
+          
+          return c.toRect({ u:halfHD, d:halfHD, l:halfW, r:halfW });
+        }
+      });
+      
+      var bbox = { h:1, d:0, w:1, lw:0, rw:1 };
+      var H = bbox.h, D = bbox.d, W = bbox.w;
+      var frame = HTMLCSS.createFrame(svgStack, H + D, 0, W, t, "none");
+      frame.id = "MathJax-frame-" + this.spanID + HTMLCSS.idPostfix;
+      
+      var svg;
+      var color = "black";
+      svg = xypic.Graphics.createSVG(H, D, W, t, color, {
+        viewBox:[0, -xypic.em2px(H + D), xypic.em2px(W), xypic.em2px(H + D)].join(" "),
+        overflow:"visible"
+      });
+      xypic.svgForDebug = svg;
+      xypic.svgForTestLayout = svg;
+      var scale = HTMLCSS.createBox(svgStack);
+      scale.appendChild(svg.svg);
+      
+      var xypicData = this.cmd;
+      if (xypicData) {
+        var env = xypic.Env();
+        
+        var context = xypic.DrawingContext(xypic.Shape.none, env);
+        xypicData.toShape(context);
+        var shape = context.shape;
+        shape.draw(svg);
+        
+        var box = shape.getBoundingBox();
+        if (box !== undefined) {
+          box = xypic.Frame.Rect(
+            0, 0,
+            {
+              l:Math.max(0, -(box.x - box.l)),
+              r:Math.max(0, box.x + box.r),
+              u:Math.max(0, box.y + box.u),
+              d:Math.max(0, -(box.y - box.d))
+            }
+          );
+          
+          svg.setWidth(box.l + box.r + 2 * p);
+          svg.setHeight(box.u + box.d + 2 * p);
+          svg.setAttribute("viewBox", [ xypic.em2px(box.x - box.l - p), -xypic.em2px(box.y + box.u + p), xypic.em2px(box.l + box.r + 2 * p), xypic.em2px(box.u + box.d + 2 * p) ].join(" "));
+          var c = textObjects.length;
+          for (var i = 0; i < c; i++) {
+            var to = textObjects[i];
+            var x = parseFloat(to.getAttribute("x"));
+            var y = parseFloat(to.getAttribute("y"));
+            
+            to.style.left = "" + xypic.em2px(x + box.l + p * xypic.oneem) + "px";
+            to.style.top = "" + xypic.em2px(y - xypic.axis_height) + "px";
+          }
+          
+          bbox = { h:(box.u + p), d:(box.d + p), w:(box.l + box.r + 2 * p), lw:0, rw:(box.l + box.r + 2 * p)}
+          span.bbox = bbox;
+          D = box.d + p;
+          W = box.l + box.r + 2 * p;
+          H = box.h + p;
+          
+          HTMLCSS.placeBox(scale, 0, xypic.axis_height - D, true);
+          frame.style.width = xypic.Em(W);
+          frame.style.height = xypic.Em(H + D);
+          HTMLCSS.addBox(svgStack, frame); 
+          HTMLCSS.placeBox(frame, W - 1, -D, true);
+          this.HTMLhandleSpace(span);
+          this.HTMLhandleColor(span);
+        } else {
+          // there is no contents
+          span = span.parentNode;
+          span.removeChild(span.firstChild);
+        }
+      } else {
+        // there is no contents
+        span = span.parentNode;
+        span.removeChild(span.firstChild);
+      }
+      
+      return span;
+    }
+  });
+  
+  AST.xypic.newdir.Augment({
+    toHTML: function (span) {
+      var newdir = this.cmd;
+      xypic.repositories.dirRepository.put(newdir.dirMain, newdir.compositeObject);
+      return span;
+    }
+  });
   
   MathJax.Hub.Startup.signal.Post("HTML-CSS Xy-pic Ready");
 });
 
 
-/*
 MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
   var FP = MathJax.Extension.fp;
   var MML = MathJax.ElementJax.mml;
@@ -15118,46 +15172,8 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
   var SVGNS = "http://www.w3.org/2000/svg";
   var XHTMLNS = "http://www.w3.org/1999/xhtml";
   var XLINKNS = "http://www.w3.org/1999/xlink";
-  var VMLNS = "urn:schemas-microsoft-com:vml";
-  var vmlns = "mjxvml";
   
-  // override MathJax.Hub.formatError function to display runtime error.
-  var hub_formatError = HUB.formatError;
-  HUB.formatError = function (script, err) {
-    if (err.xyjaxError !== undefined) {
-      var origMessage = HUB.config.errorSettings.message;
-      HUB.config.errorSettings.message = "[" + err.message + "]";
-      hub_formatError.apply(HUB, [script, err]);
-      HUB.config.errorSettings.message = origMessage;
-    } else {
-      hub_formatError.apply(HUB, [script, err]);
-    }
-    throw err;
-  }
-  
-  var em2px = function (n) { return Math.round(n * SVG.em * 100) / 100; }
-  
-  var length2em = function (len) {
-    throw new xypic.ExecutionError("length2em is undefined.");
-  }
-  
-  var memoize = function (object, funcName) {
-    var func = object[funcName];
-    var memo = function () {
-        var value = func.call(this);
-        var constFunc = function () {
-            return value;
-        }
-        constFunc.reset = reset;
-        object[funcName] = constFunc;
-        return value;
-    }
-    var reset = function () {
-        object[funcName] = memo;
-    }
-    memo.reset = reset;
-    reset();
-  }
+  var memoize = xypic.memoize;
   
   BBOX.PPATH = BBOX.Subclass({
     type: "path", removeable: false,
@@ -15172,44 +15188,168 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
     }
   });
   
+  BBOX.XYPIC = BBOX.Subclass({
+    type: "g", removeable: false,
+    Init: function (bbox, x, y, svg) {
+      this.element = svg;
+      
+      this.x = x;
+      this.y = y;
+      this.w = bbox.w;
+      this.r = bbox.r;
+      this.l = bbox.l;
+      this.h = bbox.h;
+      this.H = bbox.h;
+      this.d = bbox.d;
+      this.D = bbox.d;
+      
+      this.scale = 1;
+      this.n = 1;
+    }
+  });
+  
   AST.xypic.Augment({
+    setupSVGMeasure: function (mu, scale) {
+      xypic.length2em = function (len) { return SVG.length2em(len, mu, 1/SVG.em) * scale; }
+      xypic.oneem = xypic.length2em("1em");
+      xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
+      
+      xypic.Em = function (x) { return SVG.Em(x); }
+      xypic.em = SVG.em;
+      xypic.em2px = function (n) { return Math.round(n * SVG.em * 100) / 100; }
+      xypic.axis_height = SVG.TeX.axis_height;
+      
+      AST.xypic.strokeWidth = xypic.length2em("0.04em");
+      AST.xypic.thickness = xypic.length2em("0.15em");
+      AST.xypic.jot = xypic.length2em("3pt");
+      AST.xypic.objectmargin = xypic.length2em("3pt");
+      AST.xypic.objectwidth = xypic.length2em("0pt");
+      AST.xypic.objectheight = xypic.length2em("0pt");
+      AST.xypic.labelmargin = xypic.length2em("2.5pt");
+      AST.xypic.turnradius = xypic.length2em("10pt");
+      AST.xypic.lineElementLength = xypic.length2em("5pt");
+      AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("1em") / 1000;
+      
+      AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
+    },
     toSVG: function (HW, DD) {
       this.SVGgetStyles();
       
       var svg = this.SVG();
       this.SVGhandleSpace(svg);
-//      var p = xypic.length2em("0.2em");
-//      var t = AST.xypic.strokeWidth;
       
       var mu = this.SVGgetMu(svg);
       var scale = this.SVGgetScale();
-      length2em = function (len) {
-        return SVG.length2em(len); //, mu, 1/SVG.em) * scale;
-      };
+      this.setupSVGMeasure(mu, scale);
       
-      var p = length2em("0.2em");
-      var t = length2em("0.075em");
-      var H = p+t, D = p+t, W = 2*(p+t);
-      var dx = 0, w, h, i, m;
+      var p = xypic.length2em("0.2em");
+      var t = AST.xypic.strokeWidth;
       
-      svg.Add(BBOX.PPATH(H,D,W,
-        "M "+this.SVGxy(t/2,.4*(H+D)) +
-        " L "+this.SVGxy(p,t/2) +
-        " L "+this.SVGxy(2*p,H+D-t/2) +
-        " L "+this.SVGxy(W,H+D-t/2),
-        t, "black"),0,t);
-      dx = p;
+      var textObjects = [];
+      var jaxSVG = svg;
       
-      this.SVGhandleSpace(svg);
-      this.SVGhandleColor(svg);
-      this.SVGsaveData(svg);
+      xypic.Shape.TextShape.Augment({
+        _draw: function (svg, test) {
+          var math = this.math;
+          
+          // padding
+          var p = xypic.length2em("0.1em");
+          var c = this.c;
+          
+          math.setTeXclass();
+          math.SVGgetStyles();
+          
+          math.SVGhandleSpace(jaxSVG);
+          var box = math.data[0].toSVG();
+          var x = c.x - box.w / 2;
+          var y = c.y - (box.h + box.d) / 2 + box.d + xypic.axis_height;
+          var H = box.h + p;
+          var D = box.d + p;
+          var W = box.w + 2 * p;
+          this.originalBBox = { H:H, D:D, W:W };
+          var halfHD = (H + D) / 2;
+          var halfW = W / 2;
+          
+          if (!test) {
+            var color = svg.getCurrentColor();
+            var localSVG = BBOX.G({ stroke:color, fill:color, "stroke-thickness":0 }).With({removeable: false});
+            var origin = svg.getOrigin();
+            localSVG.Add(box);
+            localSVG.ic = box.ic;
+            localSVG.Clean();
+            math.SVGhandleColor(localSVG);
+            math.SVGsaveData(localSVG);
+            
+            textObjects.push({
+              svg: localSVG,
+              x: x - origin.x,
+              y: y + origin.y
+            });
+          }
+          
+          return c.toRect({ u:halfHD, d:halfHD, l:halfW, r:halfW });
+        }
+      });
+      
+      var bbox = { h:xypic.oneem, d:0, w:xypic.oneem, lw:0, rw:xypic.oneem };
+      var H = bbox.h, D = bbox.d, W = bbox.w;
+      var svg;
+      var color = "black";
+      xypicSVG = xypic.Graphics.createSVG(H, D, W, t, color, {
+        viewBox:[0, -xypic.em2px(H + D), xypic.em2px(W), xypic.em2px(H + D)].join(" "),
+        overflow:"visible"
+      });
+      xypic.svgForDebug = xypicSVG;
+      xypic.svgForTestLayout = xypicSVG;
+      
+      var xypicData = this.cmd;
+      if (xypicData) {
+        var env = xypic.Env();
+        
+        var context = xypic.DrawingContext(xypic.Shape.none, env);
+        xypicData.toShape(context);
+        var shape = context.shape;
+        shape.draw(xypicSVG);
+        
+        var box = shape.getBoundingBox();
+        if (box !== undefined) {
+          box = xypic.Frame.Rect(
+            0, 0,
+            {
+              l:Math.max(0, -(box.x - box.l)),
+              r:Math.max(0, box.x + box.r),
+              u:Math.max(0, box.y + box.u),
+              d:Math.max(0, -(box.y - box.d))
+            }
+          );
+          bbox = { h:(box.u + p + xypic.axis_height), d:(box.d + p - xypic.axis_height), w:(box.r - box.l), l:(- box.l - p), r:(box.r + p)}
+          
+          var xypicBBOX = BBOX.XYPIC(bbox, 0, 0, xypicSVG.drawArea);
+          xypicBBOX.element.setAttribute("transform", "scale(" + (1 / SVG.em) + ") matrix(1 0 0 -1 0 0) translate(0," + xypic.em2px(- xypic.axis_height) + ")");
+          svg.Add(xypicBBOX);
+          for (var i = 0, count = textObjects.length; i < count; i++) {
+            var textObject = textObjects[i];
+            svg.Add(textObject.svg, textObject.x, textObject.y);
+          }
+          this.SVGhandleSpace(svg);
+          this.SVGhandleColor(svg);
+          this.SVGsaveData(svg);
+        }
+      }
+      
       return svg;
-    },
-    SVGxy: function (x,y) {return Math.floor(x)+","+Math.floor(y)}
+    }
+  });
+  
+  AST.xypic.newdir.Augment({
+    toSVG: function () {
+      var newdir = this.cmd;
+      xypic.repositories.dirRepository.put(newdir.dirMain, newdir.compositeObject);
+      return this.SVG();
+    }
   });
   
   MathJax.Hub.Startup.signal.Post("SVG Xy-pic Ready");
 });
-*/
 
 MathJax.Ajax.loadComplete("[MathJax]/extensions/TeX/xypic.js");

@@ -8,22 +8,22 @@ This extension enable us to draw various graphs and diagrams.
 
 See http://sonoisa.github.com/xyjax/xyjax.html for more details. And origins
 
-- MathJax: http://www.mathjax.org/ (Mother)
-- Xy-pic: http://www.tug.org/applications/Xy-pic/ (Father)
+- MathJax: http://www.mathjax.org/
+- Xy-pic: http://www.tug.org/applications/Xy-pic/
 
-But, this software is under development, so this release is alpha-quality (often buggy).
+This software is under development, so this release is beta-quality.
 
 
 ## Installation and Usage
 
 1. Download MathJax source code.
  - Go to the MathJax download site: http://www.mathjax.org/download/
- - Download MathJax source code (ver. >= 2.0).
+ - Download MathJax source code (ver. >= 2.1).
  - Extract the MathJax source code to a directory (referred to as [MathJax dir]). e.g. 
  
-   >     $ unzip mathjax-MathJax-v2.0-xxxx -d ~/work
+   >     $ unzip mathjax-MathJax-v2.1-xxxx -d ~/work
    
- In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.0-xxxx
+ In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.1-xxxx
  
 2. Download XyJax source code.
  - Go to the XyJax download site (this page).
@@ -40,9 +40,9 @@ But, this software is under development, so this release is alpha-quality (often
  - [XyJax dir]/test/sample-xyjax.html &rarr; [MathJax dir]/test/sample-xyjax.html
    
    eg.
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/fp.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.0-xxxx/extensions/TeX/
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.0-xxxx/test/
+   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/fp.js ~/work/mathjax-MathJax-v2.1-xxxx/extensions/
+   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.1-xxxx/extensions/TeX/
+   >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.1-xxxx/test/
    
    ![moved files](http://sonoisa.github.com/xyjax/xyjax_images/Moved_XyJax_files.png)
    
@@ -52,7 +52,7 @@ But, this software is under development, so this release is alpha-quality (often
    ![commutative diagram](http://sonoisa.github.com/xyjax/xyjax_images/CD2.png)
 
 5. Install MathJax on your own server using the source code you created in step 3.
- - Follow the local installation instructions: http://www.mathjax.org/docs/2.0/installation.html
+ - Follow the local installation instructions: http://docs.mathjax.org/en/latest/installation.html
 
 6. Use XyJax on your own site.
  + like the configuration of the test/sample-xy.jax, load MathJax.js and fp.js, xypic.js within pages on your site.
@@ -74,8 +74,15 @@ But, this software is under development, so this release is alpha-quality (often
 
 ## Present Limitation
 
-- Supported Browsers: Firefox, Safari, Chrome, Opera, Internet Explorer 9 (IE9 Standards Mode only)
-- Supported Math Renderer: HTML-CSS
+- Supported Browsers:
+ - Firefox
+ - Safari
+ - Chrome
+ - Opera
+ - Internet Explorer 9 (IE9 Standards Mode only)
+- Supported Math Renderer:
+ - HTML-CSS
+ - SVG (MathJax 2.1 or later required)
 
 ## Current Implementation Status
 
