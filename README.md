@@ -65,6 +65,9 @@ This software is under development, so this release is beta-quality.
  >       "HTML-CSS": {
  >         styles: {".MathJax_Preview": {visibility: "hidden"}}
  >       },
+ >       "SVG": {
+ >         styles: {".MathJax_Preview": {visibility: "hidden"}}
+ >       },
  >       tex2jax: {inlineMath: [["$","$"],["\\(","\\)"]]},
  >       TeX: {extensions: ["xypic.js", "AMSmath.js","AMSsymbols.js"]}
  >       //                  ^^^^^^^^load xypic.js
