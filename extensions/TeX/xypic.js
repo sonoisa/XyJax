@@ -6,7 +6,7 @@
  *  
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2011-2012 Isao Sonobe <sonoisa@gmail.com>.
+ *  Copyright (c) 2011-2013 Isao Sonobe <sonoisa@gmail.com>.
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -130,7 +130,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       twocellstyle: ['Macro', '\\scriptstyle'],
       xybox: 'Xybox',
       xymatrix: 'Xymatrix',
-      newdir: 'XypicNewdir'
+      newdir: 'XypicNewdir',
+      includegraphics: 'Xyincludegraphics'
     },
     environment: {
       xy: ['ExtensionEnv', null, 'XYpic']
@@ -188,6 +189,23 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       this.cmd = cmd;
     },
     type: "newdir",
+    inferRow: false,
+    defaults: {
+      mathbackground: MML.INHERIT,
+      mathcolor: MML.INHERIT,
+      notation: MML.NOTATION.LONGDIV,
+      texClass: MML.TEXCLASS.ORD
+    },
+    setTeXclass: MML.mbase.setSeparateTeXclasses,
+    toString: function () { return this.type + "(" + this.cmd + ")"; }
+  });
+  
+  AST.xypic.includegraphics = MML.mbase.Subclass({
+    Init: function (cmd) {
+      this.data = [];
+      this.cmd = cmd;
+    },
+    type: "includegraphics",
     inferRow: false,
     defaults: {
       mathbackground: MML.INHERIT,
@@ -2278,7 +2296,94 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     }
   });
   
+  // '\xyimport' '(' <factor> ',' <factor> ')' ( '(' <factor> ',' <factor> ')' )? '{' <TeX command> '}'
+  AST.Pos.Xyimport = MathJax.Object.Subclass({});
+  AST.Pos.Xyimport.TeXCommand = AST.Pos.Xyimport.Subclass({
+    /**
+     * @param {Number} width the width of the graphics in the coordinate system
+     * @param {Number} height the height of the graphics in the coordinate system
+     * @param {Number} xOffset the distance of the origin of coordinates from left corner
+     * @param {Number} yOffset the distance of the origin of coordinates from bottom corner
+     * @param {AST.Command.*} graphics object
+     */
+    Init: function (width, height, xOffset, yOffset, graphics) {
+      this.width = width;
+      this.height = height;
+      this.xOffset = xOffset;
+      this.yOffset = yOffset;
+      this.graphics = graphics;
+    },
+    toString: function () {
+      return "\\xyimport(" + this.width + ", " + this.height + ")(" + this.xOffset + ", " + this.yOffset + "){" + this.graphics + "}";
+    }
+  });
   
+  // '\xyimport' '(' <factor> ',' <factor> ')' ( '(' <factor> ',' <factor> ')' )? '{' <include graphics> '}'
+  AST.Pos.Xyimport.Graphics = AST.Pos.Xyimport.Subclass({
+    /**
+     * @param {Number} width the width of the graphics in the coordinate system
+     * @param {Number} height the height of the graphics in the coordinate system
+     * @param {Number} xOffset the distance of the origin of coordinates from left corner
+     * @param {Number} yOffset the distance of the origin of coordinates from bottom corner
+     * @param {AST.Command.Includegraphics} graphics object
+     */
+    Init: function (width, height, xOffset, yOffset, graphics) {
+      this.width = width;
+      this.height = height;
+      this.xOffset = xOffset;
+      this.yOffset = yOffset;
+      this.graphics = graphics;
+    },
+    toString: function () {
+      return "\\xyimport(" + this.width + ", " + this.height + ")(" + this.xOffset + ", " + this.yOffset + "){" + this.graphics + "}";
+    }
+  });
+  
+  /* \includegraphics command from the graphicx package */
+  // '\includegraphics' '*'? '[' ( <includegraphics attr key val> ( ',' <includegraphics attr key val> )* )? ']' '{' <file path> '}'
+  AST.Command.Includegraphics = MathJax.Object.Subclass({
+    /**
+     * @param {boolean} isClipped whether the graphics is clipped to the size specified or not
+     * @param {List[AST.Command.Includegraphics.Attr]} attributeList attribute key-value list
+     * @param {String} filepath image file path
+     */
+    Init: function (isClipped, attributeList, filepath) {
+      this.isClipped = isClipped;
+      this.attributeList = attributeList;
+      this.filepath = filepath;
+    },
+    isIncludegraphics: true,
+    toString: function () {
+      return "\\includegraphics" + (this.isClipped? "*" : "") + this.attributeList.mkString("[", ",", "]") + "{" + this.filepath + "}";
+    }
+  });
+  
+  // TODO: define <includegraphics attr key val>
+  // <includegraphics attr key val> := 'width' '=' <dimen>
+  //                                |  'height' '=' <dimen>
+  AST.Command.Includegraphics.Attr = MathJax.Object.Subclass({});
+  AST.Command.Includegraphics.Attr.Width = AST.Command.Includegraphics.Attr.Subclass({
+    /**
+     * @param {String} dimen 
+     */
+    Init: function (dimen) {
+      this.dimen = dimen;
+    },
+    toString: function () {
+      return "width=" + this.dimen;
+    }
+  });
+  AST.Command.Includegraphics.Attr.Height = AST.Command.Includegraphics.Attr.Subclass({
+    /**
+     * @param {String} dimen 
+     */
+    Init: function (dimen) {
+      this.dimen = dimen;
+    },
+    toString: function () {
+      return "height=" + this.dimen;
+    }
+  });
   
   var fun = FP.Parsers.fun;
   var elem = FP.Parsers.elem;
@@ -2376,6 +2481,7 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     //        |   '=@' '"' <id> '"'
     //        |   '=' '"' <id> '"'
     //        |   '=' <nonemptyCoord> '"' <id> '"'
+    //        |   <xyimport>
     pos2: memo(function () {
       return or(
         lit('+').andr(p.coord).to(function (c) { return AST.Pos.Plus(c); }),
@@ -2399,7 +2505,8 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         lit('=:').andr(flit('"')).andr(p.id).andl(felem('"')).to(function (id) { return AST.Pos.SaveBase(id); }),
         lit('=@').andr(flit('"')).andr(p.id).andl(felem('"')).to(function (id) { return AST.Pos.SaveStack(id); }),
         lit('=').andr(flit('"')).andr(p.id).andl(felem('"')).to(function (id) { return AST.Pos.SavePos(id); }),
-        lit('=').andr(p.nonemptyCoord).andl(flit('"')).and(p.id).andl(felem('"')).to(function (mid) { return AST.Pos.SaveMacro(mid.head, mid.tail); })
+        lit('=').andr(p.nonemptyCoord).andl(flit('"')).and(p.id).andl(felem('"')).to(function (mid) { return AST.Pos.SaveMacro(mid.head, mid.tail); }),
+        p.xyimport
       );
     }),
     
@@ -3839,7 +3946,65 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     newdir: memo(function () {
       return lit("{").andr(p.dirMain).andl(felem("}")).andl(flit("{")).and(p.compositeObject).andl(flit("}")).to(function (mc) {
         return AST.Command.Newdir(mc.head, AST.ObjectBox.CompositeObject(mc.tail));
-      })
+      });
+    }),
+    
+    // '\xyimport' '(' <factor> ',' <factor> ')' ( '(' <factor> ',' <factor> ')' )? '{' ( <include graphics> | <TeX command> ) '}'
+    xyimport: memo(function () {
+      return lit("\\xyimport").andr(flit("(")).andr(p.factor).andl(flit(",")).and(p.factor).andl(flit(")")).and(fun(
+        opt(lit("(").andr(p.factor).andl(flit(",")).and(p.factor).andl(flit(")")))
+      )).andl(flit("{")).and(fun(
+        or(
+          lit("\\includegraphics").andr(p.includegraphics),
+          p.text().to(function (t) { return p.toMath("\\hbox{$\\objectstyle{" + t + "}$}"); })
+      ))).andl(flit("}")).to(function (whog) {
+        var w = whog.head.head.head;
+        var h = whog.head.head.tail;
+        var xOffset, yOffset;
+        if (whog.head.tail.isDefined) {
+          xOffset = whog.head.tail.get.head;
+          yOffset = whog.head.tail.get.tail;
+        } else {
+          xOffset = 0;
+          yOffset = 0;
+        }
+        var graphics = whog.tail;
+        if (graphics.isIncludegraphics !== undefined) {
+          return AST.Pos.Xyimport.Graphics(w, h, xOffset, yOffset, graphics);
+        } else {
+          return AST.Pos.Xyimport.TeXCommand(w, h, xOffset, yOffset, graphics);
+        }
+      });
+    }),
+    
+    // \includegraphicsの後の
+    // '*'? '[' ( <includegraphics attr list> )? ']' '{' <file path> '}'
+    includegraphics: memo(function () {
+      return lit("[").andr(fun(opt(p.includegraphicsAttrList))).andl(flit("]")).andl(flit("{")).and(fun(regexLit(/^[^\s{}]+/))).andl(flit("}")).to(function (af) {
+        var attrList = af.head.getOrElse(FP.List.empty);
+        var file = af.tail;
+        return AST.Command.Includegraphics(false, attrList, file);
+      });
+    }),
+    
+    // <includegraphics attr list> := <includegraphics attr key val> ( ',' <includegraphics attr key val> )*
+    includegraphicsAttrList: memo(function () {
+      return p.includegraphicsAttr().and(fun(rep(lit(",").andr(p.includegraphicsAttr)))).to(function (aas) {
+        return aas.tail.prepend(aas.head);
+      });
+    }),
+    
+    // <includegraphics attr key val> := 'width' '=' <dimen>
+    //                                |  'height' '=' <dimen>
+    includegraphicsAttr: memo(function () {
+      return or(
+        lit("width").andr(flit("=")).andr(p.dimen).to(function (d) {
+          return AST.Command.Includegraphics.Attr.Width(d);
+        }),
+        lit("height").andr(flit("=")).andr(p.dimen).to(function (d) {
+          return AST.Command.Includegraphics.Attr.Height(d);
+        })
+      );
     })
     
   })();
@@ -3868,11 +4033,14 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
     toMML: function () {
       var pos = this.parseResult.next.pos();
       var lineContents = pos.lineContents();
+      return MML.merror(MML.mtext('parse error at or near "' + lineContents + '"'));
+      /*
       var col = pos.column();
       var left = lineContents.substring(0, col-1);
       var mid = lineContents.substring(col-1, col);
       var right = lineContents.substring(col);
       return MML.merror(MML.mtext('parse error at or near "'), MML.mtext(left).With({color:"black"}), MML.mtext(mid).With({color:"red"}), MML.mtext(right).With({color:"black"}), MML.mtext('"'));
+      */
     },
     texError: true,
     xyjaxError: true
@@ -3981,6 +4149,34 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
       if (result.successful) {
         if (supportGraphics) {
           this.Push(AST.xypic.newdir(result.result));
+        } else {
+          this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
+        }
+      } else {
+        throw xypic.ParseError(parseContext.lastNoSuccess);
+      }
+    },
+    
+    
+    /**
+     * Handle includegraphics
+     */
+    Xyincludegraphics: function () {
+      try {
+        var parseContext = {
+          lastNoSuccess: undefined,
+          whiteSpaceRegex: xypic.constants.whiteSpaceRegex
+        };
+        var input = FP.StringReader(this.string, this.i, parseContext);
+        var result = FP.Parsers.parse(p.includegraphics(), input);
+        this.i = result.next.offset;
+      } catch (e) {
+        throw e;
+      }
+      
+      if (result.successful) {
+        if (supportGraphics) {
+          this.Push(AST.xypic.includegraphics(result.result));
         } else {
           this.Push(MML.merror(xypic.unsupportedBrowserErrorMessage));
         }
@@ -4280,12 +4476,20 @@ MathJax.Hub.Register.StartupHook("Device-Independent Xy-pic Require",function ()
       if (def) {
         for (var id in def) {
           if (def.hasOwnProperty(id)) {
-            obj.setAttribute(id, def[id].toString());
+            if (id === "xlink:href") {
+              obj.setAttributeNS(XLINKNS, id, def[id].toString());
+            } else {
+              obj.setAttribute(id, def[id].toString());
+            }
           }
         }
       }
       this.drawArea.appendChild(obj);
       return obj;
+    },
+    appendChild: function (svgElement) {
+      this.drawArea.appendChild(svgElement);
+      return svgElement;
     },
     transformBuilder: function () {
       return xypic.Graphics.SVG.Transform();
@@ -5666,6 +5870,35 @@ MathJax.Hub.Register.StartupHook("Device-Independent Xy-pic Require",function ()
     },
     toString: function () {
       return "TextShape[c:" + this.c.toString() + ", math:" + this.math.toString() + "]";
+    }
+  });
+  
+  xypic.Shape.ImageShape = xypic.Shape.Subclass({
+    Init: function (c, url) {
+      this.c = c;
+      this.url = url;
+      memoize(this, "getBoundingBox");
+      memoize(this, "getOriginalReferencePoint");
+    },
+    draw: function (svg) {
+      var c = this.c;
+      svg.createSVGElement("image", {
+        x: xypic.em2px(c.x - c.l),
+        y: xypic.em2px(-c.y - c.u),
+        width: xypic.em2px(c.l + c.r),
+        height: xypic.em2px(c.u + c.d),
+        preserveAspectRatio: "none",
+        "xlink:href": this.url
+      });
+    },
+    getBoundingBox: function () {
+      return this.c;
+    },
+    getOriginalReferencePoint: function () {
+      return this.c;
+    },
+    toString: function () {
+      return "ImageShape[c:" + this.c.toString() + ", height:" + this.height + ", width:" + this.width + ", url:" + this.url + "]";
     }
   });
   
@@ -14916,6 +15149,123 @@ MathJax.Hub.Register.StartupHook("Device-Independent Xy-pic Require",function ()
     }
   });
   
+  AST.Pos.Xyimport.TeXCommand.Augment({
+    toShape: function (context) {
+      var origEnv = context.env;
+      if (origEnv.c === undefined) {
+        return xypic.Shape.none;
+      }
+      
+      var subEnv = origEnv.duplicate();
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, subEnv);
+      var shape = this.graphics.toDropShape(subcontext);
+      
+      var xyWidth = this.width;
+      var xyHeight = this.height;
+      if (xyWidth === 0 || xyHeight === 0) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\xyimport should be non-zero.");
+      }
+      
+      var c = subEnv.c;
+      var imageWidth = c.l + c.r;
+      var imageHeight = c.u + c.d;
+      
+      if (imageWidth === 0 || imageHeight === 0) {
+        throw xypic.ExecutionError("the width and height of the graphics to import should be non-zero.");
+      }
+      
+      var xOffset = this.xOffset;
+      var yOffset = this.yOffset;
+      
+      origEnv.c = c.toRect({
+        u:imageHeight / xyHeight * (xyHeight - yOffset),
+        d:imageHeight / xyHeight * yOffset,
+        l:imageWidth / xyWidth * xOffset,
+        r:imageWidth / xyWidth * (xyWidth - xOffset)
+      });
+      
+      origEnv.setXBase(imageWidth / xyWidth, 0);
+      origEnv.setYBase(0, imageHeight / xyHeight);
+      
+      var dx = c.l - origEnv.c.l;
+      var dy = c.d - origEnv.c.d;
+      var shape = xypic.Shape.TranslateShape(dx, dy, subcontext.shape);
+      context.appendShapeToFront(shape);
+    }
+  });
+  
+  AST.Pos.Xyimport.Graphics.Augment({
+    toShape: function (context) {
+      var origEnv = context.env;
+      if (origEnv.c === undefined) {
+        return xypic.Shape.none;
+      }
+      
+      var subEnv = origEnv.duplicate();
+      var subcontext = xypic.DrawingContext(xypic.Shape.none, subEnv);
+      
+      var xyWidth = this.width;
+      var xyHeight = this.height;
+      if (xyWidth === 0 || xyHeight === 0) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\xyimport should be non-zero.");
+      }
+      
+      var graphics = this.graphics;
+      graphics.setup(subcontext);
+      if (!subEnv.includegraphicsWidth.isDefined || !subEnv.includegraphicsHeight.isDefined) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\includegraphics are required.");
+      }
+      var imageWidth = subEnv.includegraphicsWidth.get;
+      var imageHeight = subEnv.includegraphicsHeight.get;
+      
+      if (imageWidth === 0 || imageHeight === 0) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\includegraphics should be non-zero.");
+      }
+      
+      var xOffset = this.xOffset;
+      var yOffset = this.yOffset;
+      
+      origEnv.c = subEnv.c.toRect({
+        u:imageHeight / xyHeight * (xyHeight - yOffset),
+        d:imageHeight / xyHeight * yOffset,
+        l:imageWidth / xyWidth * xOffset,
+        r:imageWidth / xyWidth * (xyWidth - xOffset)
+      });
+      
+      origEnv.setXBase(imageWidth / xyWidth, 0);
+      origEnv.setYBase(0, imageHeight / xyHeight);
+      
+      var imageShape = xypic.Shape.ImageShape(origEnv.c, graphics.filepath);
+      context.appendShapeToFront(imageShape);
+    }
+  });
+  
+  AST.Command.Includegraphics.Augment({
+    setup: function (context) {
+      var env = context.env;
+      env.includegraphicsWidth = FP.Option.empty;
+      env.includegraphicsHeight = FP.Option.empty;
+      
+      this.attributeList.foreach(function (attr) {
+        attr.setup(context);
+      });
+    }
+  });
+  
+  AST.Command.Includegraphics.Attr.Width.Augment({
+    setup: function (context) {
+      var env = context.env;
+      env.includegraphicsWidth = FP.Option.Some(xypic.length2em(this.dimen));
+    }
+  });
+  
+  AST.Command.Includegraphics.Attr.Height.Augment({
+    setup: function (context) {
+      var env = context.env;
+      env.includegraphicsHeight = FP.Option.Some(xypic.length2em(this.dimen));
+    }
+  });
+  
   MathJax.Hub.Startup.signal.Post("Device-Independent Xy-pic Ready");
 });
 
@@ -14932,35 +15282,36 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
   var XHTMLNS = "http://www.w3.org/1999/xhtml";
   var XLINKNS = "http://www.w3.org/1999/xlink";
   
+  var setupHTMLCSSMeasure = function () {
+    xypic.length2em = function (len) { return HTMLCSS.length2em(len); }
+    xypic.oneem = xypic.length2em("1em");
+    xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
+    xypic.Em = function (x) { return HTMLCSS.Em(x); }
+    xypic.em = HTMLCSS.em;
+    xypic.em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
+    xypic.axis_height = HTMLCSS.TeX.axis_height;
+    
+    AST.xypic.strokeWidth = xypic.length2em("0.04em");
+    AST.xypic.thickness = xypic.length2em("0.15em");
+    AST.xypic.jot = xypic.length2em("3pt");
+    AST.xypic.objectmargin = xypic.length2em("3pt");
+    AST.xypic.objectwidth = xypic.length2em("0pt");
+    AST.xypic.objectheight = xypic.length2em("0pt");
+    AST.xypic.labelmargin = xypic.length2em("2.5pt");
+    AST.xypic.turnradius = xypic.length2em("10pt");
+    AST.xypic.lineElementLength = xypic.length2em("5pt");
+    AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("10pt");
+    
+    AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
+  };
+  
   AST.xypic.Augment({
-    setupHTMLCSSMeasure: function () {
-      xypic.length2em = function (len) { return HTMLCSS.length2em(len); }
-      xypic.oneem = xypic.length2em("1em");
-      xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
-      xypic.Em = function (x) { return HTMLCSS.Em(x); }
-      xypic.em = HTMLCSS.em;
-      xypic.em2px = function (n) { return Math.round(n * HTMLCSS.em * 100) / 100; }
-      xypic.axis_height = HTMLCSS.TeX.axis_height;
-      
-      AST.xypic.strokeWidth = xypic.length2em("0.04em");
-      AST.xypic.thickness = xypic.length2em("0.15em");
-      AST.xypic.jot = xypic.length2em("3pt");
-      AST.xypic.objectmargin = xypic.length2em("3pt");
-      AST.xypic.objectwidth = xypic.length2em("0pt");
-      AST.xypic.objectheight = xypic.length2em("0pt");
-      AST.xypic.labelmargin = xypic.length2em("2.5pt");
-      AST.xypic.turnradius = xypic.length2em("10pt");
-      AST.xypic.lineElementLength = xypic.length2em("5pt");
-      AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("10pt");
-      
-      AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
-    },
     toHTML: function (span) {
       if (!xypic.useSVG) {
         return span;
       }
       
-      this.setupHTMLCSSMeasure();
+      setupHTMLCSSMeasure();
       
       // HTML-CSS Text Objects
       var textObjects = [];
@@ -15156,6 +15507,55 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Xy-pic Require",function () {
     }
   });
   
+  AST.xypic.includegraphics.Augment({
+    toHTML: function (span) {
+      setupHTMLCSSMeasure();
+      
+      var graphics = this.cmd;
+      
+      var env = xypic.Env();
+      var context = xypic.DrawingContext(xypic.Shape.none, env);
+      
+      graphics.setup(context);
+      if (!env.includegraphicsWidth.isDefined || !env.includegraphicsHeight.isDefined) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\includegraphics are required.");
+      }
+      
+      var imageWidth = env.includegraphicsWidth.get;
+      var imageHeight = env.includegraphicsHeight.get;
+      
+      span = this.HTMLcreateSpan(span);
+      var stack = HTMLCSS.createStack(span);
+      var base = HTMLCSS.createBox(stack);
+      
+      var img = new Image();
+      img.src = graphics.filepath;
+      img.style.width = HTMLCSS.Em(imageWidth);
+      img.style.height = HTMLCSS.Em(imageHeight);
+      base.appendChild(img);
+      
+      var bbox = {h:imageHeight, d:0, w:imageWidth, rw:imageWidth, lw:0, exactW:true};
+      img.bbox = bbox;
+      var H = imageHeight, D = 0, W = imageWidth;
+      
+      HTMLCSS.Measured(img);
+      
+      var frame = HTMLCSS.createFrame(stack, H+D, 0, W, 0, "none");
+      frame.id = "MathJax-frame-" + this.spanID;
+      HTMLCSS.addBox(stack, frame);
+      stack.insertBefore(frame, base);
+      var T = 0, B = 0, R = 0, L = 0, dx = 0, dy = 0;
+      frame.style.width = HTMLCSS.Em(W-L-R);
+      frame.style.height = HTMLCSS.Em(H+D-T-B);
+      HTMLCSS.placeBox(frame, 0, dy-D, true);
+      HTMLCSS.placeBox(base, dx, 0);
+      this.HTMLhandleSpace(span);
+      this.HTMLhandleColor(span);
+      
+      return span;
+    }
+  });
+  
   MathJax.Hub.Startup.signal.Post("HTML-CSS Xy-pic Ready");
 });
 
@@ -15195,12 +15595,12 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
       
       this.x = x;
       this.y = y;
-      this.w = bbox.w;
       this.r = bbox.r;
       this.l = bbox.l;
       this.h = bbox.h;
-      this.H = bbox.h;
       this.d = bbox.d;
+      this.w = bbox.w;
+      this.H = bbox.h;
       this.D = bbox.d;
       
       this.scale = 1;
@@ -15208,30 +15608,31 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
     }
   });
   
+  var setupSVGMeasure = function (mu, scale) {
+    xypic.length2em = function (len) { return SVG.length2em(len, mu, 1/SVG.em) * scale; }
+    xypic.oneem = xypic.length2em("1em");
+    xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
+    
+    xypic.Em = function (x) { return SVG.Em(x); }
+    xypic.em = SVG.em;
+    xypic.em2px = function (n) { return Math.round(n * SVG.em * 100) / 100; }
+    xypic.axis_height = SVG.TeX.axis_height;
+    
+    AST.xypic.strokeWidth = xypic.length2em("0.04em");
+    AST.xypic.thickness = xypic.length2em("0.15em");
+    AST.xypic.jot = xypic.length2em("3pt");
+    AST.xypic.objectmargin = xypic.length2em("3pt");
+    AST.xypic.objectwidth = xypic.length2em("0pt");
+    AST.xypic.objectheight = xypic.length2em("0pt");
+    AST.xypic.labelmargin = xypic.length2em("2.5pt");
+    AST.xypic.turnradius = xypic.length2em("10pt");
+    AST.xypic.lineElementLength = xypic.length2em("5pt");
+    AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("1em") / 1000;
+    
+    AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
+  };
+  
   AST.xypic.Augment({
-    setupSVGMeasure: function (mu, scale) {
-      xypic.length2em = function (len) { return SVG.length2em(len, mu, 1/SVG.em) * scale; }
-      xypic.oneem = xypic.length2em("1em");
-      xypic.em2length = function (len) { return (len / xypic.oneem) + "em"; }
-      
-      xypic.Em = function (x) { return SVG.Em(x); }
-      xypic.em = SVG.em;
-      xypic.em2px = function (n) { return Math.round(n * SVG.em * 100) / 100; }
-      xypic.axis_height = SVG.TeX.axis_height;
-      
-      AST.xypic.strokeWidth = xypic.length2em("0.04em");
-      AST.xypic.thickness = xypic.length2em("0.15em");
-      AST.xypic.jot = xypic.length2em("3pt");
-      AST.xypic.objectmargin = xypic.length2em("3pt");
-      AST.xypic.objectwidth = xypic.length2em("0pt");
-      AST.xypic.objectheight = xypic.length2em("0pt");
-      AST.xypic.labelmargin = xypic.length2em("2.5pt");
-      AST.xypic.turnradius = xypic.length2em("10pt");
-      AST.xypic.lineElementLength = xypic.length2em("5pt");
-      AST.xypic.axisHeightLength = xypic.axis_height * xypic.length2em("1em") / 1000;
-      
-      AST.xypic.dottedDasharray = "" + xypic.oneem + " " + xypic.em2px(AST.xypic.thickness);
-    },
     toSVG: function (HW, DD) {
       this.SVGgetStyles();
       
@@ -15240,12 +15641,11 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
       
       var mu = this.SVGgetMu(svg);
       var scale = this.SVGgetScale();
-      this.setupSVGMeasure(mu, scale);
+      setupSVGMeasure(mu, scale);
       
       var p = xypic.length2em("0.2em");
       var t = AST.xypic.strokeWidth;
       
-      var textObjects = [];
       var jaxSVG = svg;
       
       xypic.Shape.TextShape.Augment({
@@ -15271,20 +15671,16 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
           var halfW = W / 2;
           
           if (!test) {
-            var color = svg.getCurrentColor();
-            var localSVG = BBOX.G({ stroke:color, fill:color, "stroke-thickness":0 }).With({removeable: false});
             var origin = svg.getOrigin();
-            localSVG.Add(box);
+            var color = svg.getCurrentColor();
+            var localSVG = BBOX.G({ stroke:color, fill:color, "stroke-thickness":0, transform:"scale(" + SVG.em + ") matrix(1 0 0 -1 0 0) translate(" + xypic.em2px(x / SVG.em) + ", " + xypic.em2px((c.y - (H - D) / 2) / SVG.em) + ")" }).With({removeable: false});
+            localSVG.Add(box, 0, 0, true, true);
             localSVG.ic = box.ic;
             localSVG.Clean();
             math.SVGhandleColor(localSVG);
             math.SVGsaveData(localSVG);
             
-            textObjects.push({
-              svg: localSVG,
-              x: x - origin.x,
-              y: y + origin.y
-            });
+            svg.appendChild(localSVG.element);
           }
           
           return c.toRect({ u:halfHD, d:halfHD, l:halfW, r:halfW });
@@ -15293,9 +15689,8 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
       
       var bbox = { h:xypic.oneem, d:0, w:xypic.oneem, lw:0, rw:xypic.oneem };
       var H = bbox.h, D = bbox.d, W = bbox.w;
-      var svg;
       var color = "black";
-      xypicSVG = xypic.Graphics.createSVG(H, D, W, t, color, {
+      var xypicSVG = xypic.Graphics.createSVG(H, D, W, t, color, {
         viewBox:[0, -xypic.em2px(H + D), xypic.em2px(W), xypic.em2px(H + D)].join(" "),
         overflow:"visible"
       });
@@ -15311,27 +15706,30 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
         var shape = context.shape;
         shape.draw(xypicSVG);
         
-        var box = shape.getBoundingBox();
-        if (box !== undefined) {
-          box = xypic.Frame.Rect(
+        var shapeBBox = shape.getBoundingBox();
+        if (shapeBBox !== undefined) {
+          var box = xypic.Frame.Rect(
             0, 0,
             {
-              l:Math.max(0, -(box.x - box.l)),
-              r:Math.max(0, box.x + box.r),
-              u:Math.max(0, box.y + box.u),
-              d:Math.max(0, -(box.y - box.d))
+              l:Math.max(0, -(shapeBBox.x - shapeBBox.l)),
+              r:Math.max(0, shapeBBox.x + shapeBBox.r),
+              u:Math.max(0, shapeBBox.y + shapeBBox.u),
+              d:Math.max(0, -(shapeBBox.y - shapeBBox.d))
             }
           );
-          bbox = { h:(box.u + p + xypic.axis_height), d:(box.d + p - xypic.axis_height), w:(box.r - box.l), l:(- box.l - p), r:(box.r + p)}
+          bbox = { h:(box.u + p + xypic.axis_height), d:(box.d + p - xypic.axis_height), w:(box.r + box.l + 2*p), l:(- box.l - p), r:(box.r + p)}
           
+          this.SVGhandleSpace(svg);
           var xypicBBOX = BBOX.XYPIC(bbox, 0, 0, xypicSVG.drawArea);
           xypicBBOX.element.setAttribute("transform", "scale(" + (1 / SVG.em) + ") matrix(1 0 0 -1 0 0) translate(0," + xypic.em2px(- xypic.axis_height) + ")");
           svg.Add(xypicBBOX);
-          for (var i = 0, count = textObjects.length; i < count; i++) {
-            var textObject = textObjects[i];
-            svg.Add(textObject.svg, textObject.x, textObject.y);
-          }
-          this.SVGhandleSpace(svg);
+          
+          
+          // FIXME
+          svg.x += box.l + p;
+          svg.w -= box.l + p;
+          
+          
           this.SVGhandleColor(svg);
           this.SVGsaveData(svg);
         }
@@ -15346,6 +15744,70 @@ MathJax.Hub.Register.StartupHook("SVG Xy-pic Require",function () {
       var newdir = this.cmd;
       xypic.repositories.dirRepository.put(newdir.dirMain, newdir.compositeObject);
       return this.SVG();
+    }
+  });
+  
+  AST.xypic.includegraphics.Augment({
+    toSVG: function (HW, DD) {
+      this.SVGgetStyles();
+      
+      var svg = this.SVG();
+      this.SVGhandleSpace(svg);
+      
+      var mu = this.SVGgetMu(svg);
+      var scale = this.SVGgetScale();
+      setupSVGMeasure(mu, scale);
+      var t = AST.xypic.strokeWidth;
+      
+      var bbox = { h:xypic.oneem, d:0, w:xypic.oneem, lw:0, rw:xypic.oneem };
+      var H = bbox.h, D = bbox.d, W = bbox.w;
+      var color = "black";
+      var xypicSVG = xypic.Graphics.createSVG(H, D, W, t, color, {
+        viewBox:[0, -xypic.em2px(H + D), xypic.em2px(W), xypic.em2px(H + D)].join(" "),
+        overflow:"visible"
+      });
+      xypic.svgForDebug = xypicSVG;
+      xypic.svgForTestLayout = xypicSVG;
+      
+      var env = xypic.Env();
+      var context = xypic.DrawingContext(xypic.Shape.none, env);
+      
+      var graphics = this.cmd;
+      graphics.setup(context);
+      if (!env.includegraphicsWidth.isDefined || !env.includegraphicsHeight.isDefined) {
+        throw xypic.ExecutionError("the 'width' and 'height' attributes of the \\includegraphics are required.");
+      }
+      var imageWidth = env.includegraphicsWidth.get;
+      var imageHeight = env.includegraphicsHeight.get;
+      
+      var c = env.c;
+      c = c.toRect({ u:imageHeight - xypic.axis_height, d:xypic.axis_height, l:0, r:imageWidth });
+      var imageShape = xypic.Shape.ImageShape(c, graphics.filepath);
+      imageShape.draw(xypicSVG);
+      
+      var shapeBBox = imageShape.getBoundingBox();
+      var box = xypic.Frame.Rect(
+        0, 0,
+        {
+          l:Math.max(0, -(shapeBBox.x - shapeBBox.l)),
+          r:Math.max(0, shapeBBox.x + shapeBBox.r),
+          u:Math.max(0, shapeBBox.y + shapeBBox.u),
+          d:Math.max(0, -(shapeBBox.y - shapeBBox.d))
+        }
+      );
+      
+      var bbox = { h:(box.u + xypic.axis_height), d:(box.d - xypic.axis_height), w:(box.r + box.l), l:(- box.l), r:(box.r)}
+      
+      this.SVGhandleSpace(svg);
+      var xypicBBOX = BBOX.XYPIC(bbox, 0, 0, xypicSVG.drawArea);
+      xypicBBOX.element.setAttribute("transform", "scale(" + (1 / SVG.em) + ") matrix(1 0 0 -1 0 0) translate(0," + xypic.em2px(- xypic.axis_height) + ")");
+      svg.Add(xypicBBOX);
+      svg.x += box.l;
+      svg.w -= box.l;
+      this.SVGhandleColor(svg);
+      this.SVGsaveData(svg);
+      
+      return svg;
     }
   });
   

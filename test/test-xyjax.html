@@ -31,6 +31,66 @@
 <hr>
 <p>
 
+<!--
+\[
+\newcommand\degrees{^{\circ}}
+\begin{xy}
+\xyimport(7,50)(-0.5, 0){\bbox[4cm]{}}*\frm{-},
+,0;/u2pc/**{}
+,(.5,5)*@{|}*+!R{40\degrees}
+,(.5,25)*@{|}*+!R{60\degrees}
+,(.5,45)*@{|}*+!R{80\degrees}
+,0;/r2pc/**{}
+,(1,0)*@_{|}*++!U\txt\small{Su}
+,(2,0)*@_{|}*++!U\txt\small{Mo}
+,(3,0)*@_{|}*++!U\txt\small{Tu}
+,(4,0)*@_{|}*++!U\txt\small{We}
+,(5,0)*@_{|}*++!U\txt\small{Th}
+,(6,0)*@_{|}*++!U\txt\small{Fr}
+,(7,0)*@_{|}*++!U\txt\small{Sa}
+\end{xy}
+\]
+-->
+
+\[
+\begin{xy}
+\xyimport(3.7, 3.7)(1.4, 1.4){\includegraphics[width=15em, height=15em]{ellip.png}}
+,!D+<2pc, -1pc>*+!U\txt{Rathinal points on the elliptic curve: $x^3+y^3=7$.}
+,(1,0)*+!U{1},
+,(-1,0)*+!U{-1}
+,(0,1)*+!R{1},
+,(0,-1)*+!R{-1}
+,(2,-1)*+!RU{P}
+,(-1,2)*+!RU{-P}
+,(1.3333,1.6667)*+!UR{-2P}
+,(1.6667,1.3333)*!DL{\;2P}
+,(-.5,1.9)*++!DL{3P}
+,(1.9,-.5)*!DL{\;-3P}
+,(-1,2.3)*+++!D{\infty}*=0{},{\ar+(-.2,.2)}
+,(.5,2.3)*+++!D{\infty}*=0{},{\ar+(-.2,.2)}
+,(2.3,-1)*+++!L{\infty}*=0{},{\ar+(.2,-.2)}
+\end{xy}
+\]
+
+<!--
+\[
+\includegraphics[width=8em, height=8em]{import1.png}A
+\begin{xy}
+0*{\includegraphics[width=8em, height=8em]{import1.png}}*\frm<1em>{-}
+\end{xy}
+B
+\]
+
+
+\[
+A
+\begin{xy}
+<-3em,0em>;0**@{-},
+0*[F]{ABCDEF}
+\end{xy}
+B
+\]
+
 
 <!--
 \[
@@ -51,22 +111,23 @@
 -->
 
 \[
-\xymatrix{
+A\xymatrix{
 (f_1)_*x_1 \ar[r]_a \ar[d]_{(f_1)_*b_1} & (f_2)_*x_2 \ar[d]^{(f_2)_*b_2} \\
 (f_1)_*x'_1 \ar[r]^{a'} & (f_2)_*x'_2.
-}
+}B
 \]
 
 \[
-\begin{xy}
+A\begin{xy}
 \xymatrix{
 R \ar@<1ex>[r] \ar@<-1ex>[r] &
 U \ar[r]^{a} &
 F
 }
-\end{xy}
+\end{xy}B
 \]
 
+<!--
 \[
 \newdir{m}{!/4.5pt/@{|}*:(1,-.2)@^{>}*:(1,.2)@_{>}}
 \begin{xy}
