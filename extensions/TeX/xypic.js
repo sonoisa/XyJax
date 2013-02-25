@@ -3377,9 +3377,15 @@ MathJax.Hub.Register.StartupHook("TeX Xy-pic Require",function () {
         var emptyTip = AST.Command.Ar.Form.Tip.Tipchars("");
         var tail, stem, head;
         if (!maybeStem.isDefined && !maybeHead.isDefined) {
-          tail = emptyTip;
-          stem = AST.Command.Ar.Form.Conn.Connchars("-");
-          head = maybeTail.getOrElse(emptyTip);
+          if (!maybeTail.isDefined) {
+            tail = emptyTip;
+            stem = AST.Command.Ar.Form.Conn.Connchars("");
+            head = emptyTip;
+          } else {
+            tail = emptyTip;
+            stem = AST.Command.Ar.Form.Conn.Connchars("-");
+            head = maybeTail.getOrElse(emptyTip);
+          }
         } else {
           tail = maybeTail.getOrElse(emptyTip);
           stem = maybeStem.getOrElse(AST.Command.Ar.Form.Conn.Connchars(""));
