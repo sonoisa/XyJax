@@ -6,7 +6,7 @@ XyJax is a almost Xy-pic compatible language extension for MathJax.
 
 This extension enable us to draw various graphs and diagrams.
 
-See http://sonoisa.github.com/xyjax/xyjax.html for more details. And origins
+See http://sonoisa.github.io/xyjax/xyjax.html for more details. And origins
 
 - MathJax: http://www.mathjax.org/
 - Xy-pic: http://www.tug.org/applications/Xy-pic/
@@ -14,7 +14,79 @@ See http://sonoisa.github.com/xyjax/xyjax.html for more details. And origins
 This software is under development, so this release is beta-quality.
 
 
-## Installation and Usage
+## Installation instructions
+
+### Installation Method 1. Installing only XyJax on your own server, and using it with the MathJax CDN.
+
+1. Choose the installation location of the XyJax on your own server (referred to as [XyJax loc]).
+
+     e.g. http://sonoisa.github.io/xyjax_ext/
+ 
+ In this case, [XyJax loc] = http://sonoisa.github.io/xyjax_ext .
+
+2. Download XyJax source code.
+ - Go to the XyJax download site (this page).
+ - Click the Download Zip button.
+ - Extract the downloaded file to a directory (referred to as [XyJax dir]). e.g.
+
+   >     $ unzip  sonoisa-XyJax-xxxxx -d ~/work
+   
+ In this case, [XyJax dir] = ~/work/sonoisa-XyJax-xxxxx .
+
+3. Rewrite the source code of the XyJax.
+ - Open [XyJax dir]/extensions/fp.js and [XyJax dir]/extensions/TeX/xypic.js.
+ - Rewrite the string "[MathJax]/extensions" in the last line to fit your [XyJax loc]. e.g.
+   
+   >     fp.js
+   >       before: MathJax.Ajax.loadComplete("[MathJax]/extensions/fp.js");
+   >       after:  MathJax.Ajax.loadComplete("http://sonoisa.github.io/xyjax_ext/fp.js");
+   >
+   >     xypic.js 
+   >       before: MathJax.Ajax.loadComplete("[MathJax]/extensions/TeX/xypic.js");
+   >       after:  MathJax.Ajax.loadComplete("http://sonoisa.github.io/xyjax_ext/xypic.js");
+
+4. Publish the XyJax to your own server.
+ - Publish [XyJax dir]/extensions/fp.js to [XyJax loc]/fp.js.
+   
+     e.g. http://sonoisa.github.io/xyjax_ext/fp.js .
+ - Publish [XyJax dir]/extensions/TeX/xypic.js to [XyJax loc]/xypic.js. 
+ 
+     e.g. http://sonoisa.github.io/xyjax_ext/xypic.js .
+
+5. Use XyJax on your own site.
+ + like the configuration given below, load MathJax.js and fp.js, xypic.js within pages on your site.
+
+ >     <script type="text/x-mathjax-config>
+ >     MathJax.Hub.Config({
+ >       extensions: ["tex2jax.js","[XyJax loc]/fp.js"],
+ >       //                         ^^^^^^^^^^^^^^^^^ rewrite to fit your own server url.
+ >       jax: ["input/TeX","output/HTML-CSS"],
+ >       "HTML-CSS": {
+ >         styles: {".MathJax_Preview": {visibility: "hidden"}}
+ >       },
+ >       tex2jax: {inlineMath: [["$","$"],["\\(","\\)"]]},
+ >       TeX: {extensions: ["AMSmath.js","AMSsymbols.js","[XyJax loc]/xypic.js"]}
+ >       //                                               ^^^^^^^^^^^^^^^^^^^^ rewrite to fit your own server url.
+ >     });
+ >     </script>
+ >     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+ e.g. (sample: http://sonoisa.github.io/xyjax_ext/sample-xyjax.html )
+
+ >     <script type="text/x-mathjax-config>
+ >     MathJax.Hub.Config({
+ >       extensions: ["tex2jax.js","http://sonoisa.github.io/xyjax_ext/fp.js"],
+ >       jax: ["input/TeX","output/HTML-CSS"],
+ >       "HTML-CSS": {
+ >         styles: {".MathJax_Preview": {visibility: "hidden"}}
+ >       },
+ >       tex2jax: {inlineMath: [["$","$"],["\\(","\\)"]]},
+ >       TeX: {extensions: ["AMSmath.js","AMSsymbols.js","http://sonoisa.github.io/xyjax_ext/xypic.js"]}
+ >     });
+ >     </script>
+ >     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+
+
+### Installation Method 2. Installing XyJax and MathJax on your own server.  
 
 1. Download MathJax source code.
  - Go to the MathJax download site: http://www.mathjax.org/download/
@@ -23,11 +95,11 @@ This software is under development, so this release is beta-quality.
  
    >     $ unzip mathjax-MathJax-v2.1-xxxx -d ~/work
    
- In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.1-xxxx
+ In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.1-xxxx .
  
 2. Download XyJax source code.
  - Go to the XyJax download site (this page).
- - Click the Downloads button on the upper right side, and click Download zip or tar.gz button.
+ - Click the Download Zip button.
  - Extract the downloaded file to a directory (referred to as [XyJax dir]). e.g.
 
    >     $ unzip  sonoisa-XyJax-xxxxx -d ~/work
@@ -65,9 +137,6 @@ This software is under development, so this release is beta-quality.
  >       "HTML-CSS": {
  >         styles: {".MathJax_Preview": {visibility: "hidden"}}
  >       },
- >       "SVG": {
- >         styles: {".MathJax_Preview": {visibility: "hidden"}}
- >       },
  >       tex2jax: {inlineMath: [["$","$"],["\\(","\\)"]]},
  >       TeX: {extensions: ["xypic.js", "AMSmath.js","AMSsymbols.js"]}
  >       //                  ^^^^^^^^load xypic.js
@@ -89,7 +158,7 @@ This software is under development, so this release is beta-quality.
 
 ## Current Implementation Status
 
-- See http://sonoisa.github.com/xyjax/xyjax.html#ToDo
+- See http://sonoisa.github.io/xyjax/xyjax.html#ToDo
 
 ## Contact
 
