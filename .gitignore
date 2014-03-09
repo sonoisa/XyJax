@@ -18,3 +18,7 @@
 !/test/ellip.png
 
 *.bak
+
+README-branch.txt
+
+bower.json
