@@ -34,32 +34,24 @@ This software is under development, so this release is beta-quality.
  In this case, [XyJax dir] = ~/work/sonoisa-XyJax-xxxxx .
 
 3. Rewrite the source code of the XyJax.
- - Open [XyJax dir]/extensions/fp.js and [XyJax dir]/extensions/TeX/xypic.js.
+ - Open [XyJax dir]/extensions/TeX/xypic.js.
  - Rewrite the string "[MathJax]/extensions" in the last line to fit your [XyJax loc]. e.g.
    
-   >     fp.js
-   >       before: MathJax.Ajax.loadComplete("[MathJax]/extensions/fp.js");
-   >       after:  MathJax.Ajax.loadComplete("http://sonoisa.github.io/xyjax_ext/fp.js");
-   >
    >     xypic.js 
    >       before: MathJax.Ajax.loadComplete("[MathJax]/extensions/TeX/xypic.js");
    >       after:  MathJax.Ajax.loadComplete("http://sonoisa.github.io/xyjax_ext/xypic.js");
 
 4. Publish the XyJax to your own server.
- - Publish [XyJax dir]/extensions/fp.js to [XyJax loc]/fp.js.
-   
-     e.g. http://sonoisa.github.io/xyjax_ext/fp.js .
  - Publish [XyJax dir]/extensions/TeX/xypic.js to [XyJax loc]/xypic.js. 
  
      e.g. http://sonoisa.github.io/xyjax_ext/xypic.js .
 
 5. Use XyJax on your own site.
- + like the configuration given below, load MathJax.js and fp.js, xypic.js within pages on your site.
+ + like the configuration given below, load MathJax.js and xypic.js within pages on your site.
 
  >     <script type="text/x-mathjax-config>
  >     MathJax.Hub.Config({
- >       extensions: ["tex2jax.js","[XyJax loc]/fp.js"],
- >       //                         ^^^^^^^^^^^^^^^^^ rewrite to fit your own server url.
+ >       extensions: ["tex2jax.js"],
  >       jax: ["input/TeX","output/HTML-CSS"],
  >       "HTML-CSS": {
  >         styles: {".MathJax_Preview": {visibility: "hidden"}}
@@ -74,7 +66,7 @@ This software is under development, so this release is beta-quality.
 
  >     <script type="text/x-mathjax-config>
  >     MathJax.Hub.Config({
- >       extensions: ["tex2jax.js","http://sonoisa.github.io/xyjax_ext/fp.js"],
+ >       extensions: ["tex2jax.js"],
  >       jax: ["input/TeX","output/HTML-CSS"],
  >       "HTML-CSS": {
  >         styles: {".MathJax_Preview": {visibility: "hidden"}}
@@ -107,16 +99,14 @@ This software is under development, so this release is beta-quality.
  In this case, [XyJax dir] = ~/work/sonoisa-XyJax-xxxxx
  
 3. Move the XyJax files into the MathJax directory.
- - [XyJax dir]/extensions/fp.js &rarr; [MathJax dir]/extensions/fp.js
  - [XyJax dir]/extensions/TeX/xypic.js &rarr; [MathJax dir]/extensions/TeX/xypic.js
  - [XyJax dir]/test/sample-xyjax.html &rarr; [MathJax dir]/test/sample-xyjax.html
    
    eg.
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/fp.js ~/work/mathjax-MathJax-v2.1-xxxx/extensions/
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.1-xxxx/extensions/TeX/
    >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.1-xxxx/test/
    
-   ![moved files](http://sonoisa.github.com/xyjax/xyjax_images/Moved_XyJax_files.png)
+   ![moved files](http://sonoisa.github.com/xyjax/xyjax_images/Moved_XyJax_files2.png)
    
 4. Open [MathJax dir]/test/sample-xyjax.html with Firefox/Safari/Chrome.
  + If XyJax works, You can see so-called commutative diagram like this:
@@ -127,12 +117,11 @@ This software is under development, so this release is beta-quality.
  - Follow the local installation instructions: http://docs.mathjax.org/en/latest/installation.html
 
 6. Use XyJax on your own site.
- + like the configuration of the test/sample-xy.jax, load MathJax.js and fp.js, xypic.js within pages on your site.
+ + like the configuration of the test/sample-xy.jax, load MathJax.js and xypic.js within pages on your site.
 
  >     <script type="text/x-mathjax-config>
  >     MathJax.Hub.Config({
- >       extensions: ["tex2jax.js","fp.js"],
- >       //                         ^^^^^load fp.js
+ >       extensions: ["tex2jax.js"],
  >       jax: ["input/TeX","output/HTML-CSS"],
  >       "HTML-CSS": {
  >         styles: {".MathJax_Preview": {visibility: "hidden"}}
