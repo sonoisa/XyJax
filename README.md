@@ -2,9 +2,9 @@
  -- Xy-pic extension for MathJax --
 
 ----
-XyJax is a almost Xy-pic compatible language extension for MathJax.
+XyJax is an almost Xy-pic compatible extension for MathJax.
 
-This extension enable us to draw various graphs and diagrams.
+This extension enables you to draw various graphs and diagrams.
 
 See http://sonoisa.github.io/xyjax/xyjax.html for more details. And origins
 
@@ -47,7 +47,7 @@ This software is under development, so this release is beta-quality.
      e.g. http://sonoisa.github.io/xyjax_ext/xypic.js .
 
 5. Use XyJax on your own site.
- + like the configuration given below, load MathJax.js and xypic.js within pages on your site.
+ + Like the configuration given below, load MathJax.js and xypic.js within pages on your site.
 
  >     <script type="text/x-mathjax-config>
  >     MathJax.Hub.Config({
