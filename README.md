@@ -144,6 +144,7 @@ This software is under development, so this release is beta-quality.
 - Supported Math Renderer:
  - HTML-CSS
  - SVG (MathJax 2.3 required)
+- Currently, XyJax doesn't support MathJax 2.4 or later.
 
 ## Current Implementation Status
 
