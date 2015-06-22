@@ -82,12 +82,12 @@ This software is under development, so this release is beta-quality.
 
 1. Download MathJax source code.
  - Go to the MathJax download site: http://www.mathjax.org/download/
- - Download MathJax source code (ver. >= 2.1).
+ - Download MathJax source code (ver. 2.3).
  - Extract the MathJax source code to a directory (referred to as [MathJax dir]). e.g. 
  
-   >     $ unzip mathjax-MathJax-v2.1-xxxx -d ~/work
+   >     $ unzip mathjax-MathJax-v2.3-xxxx -d ~/work
    
- In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.1-xxxx .
+ In this case, [MaxJax dir] = ~/work/mathjax-MathJax-v2.3-xxxx .
  
 2. Download XyJax source code.
  - Go to the XyJax download site (this page).
@@ -103,8 +103,8 @@ This software is under development, so this release is beta-quality.
  - [XyJax dir]/test/sample-xyjax.html &rarr; [MathJax dir]/test/sample-xyjax.html
    
    eg.
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.1-xxxx/extensions/TeX/
-   >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.1-xxxx/test/
+   >     $ cp ~/work/sonoisa-XyJax-xxxxx/extensions/TeX/xypic.js ~/work/mathjax-MathJax-v2.3-xxxx/extensions/TeX/
+   >     $ cp ~/work/sonoisa-XyJax-xxxxx/test/sample-xyjax.html ~/work/mathjax-MathJax-v2.3-xxxx/test/
    
    ![moved files](http://sonoisa.github.com/xyjax/xyjax_images/Moved_XyJax_files2.png)
    
@@ -143,7 +143,7 @@ This software is under development, so this release is beta-quality.
  - Internet Explorer 9 (IE9 Standards Mode only)
 - Supported Math Renderer:
  - HTML-CSS
- - SVG (MathJax 2.1 or later required)
+ - SVG (MathJax 2.3 required)
 
 ## Current Implementation Status
 
