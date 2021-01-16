@@ -1,5 +1,8 @@
 # XyJax
- -- Xy-pic extension for MathJax --
+ -- Xy-pic extension for MathJax version 2 --
+
+**NOTE:**
+- **XyJax for MathJax version 3 is available in the other repository**: https://github.com/sonoisa/XyJax-v3
 
 ----
 XyJax is an almost Xy-pic compatible extension for MathJax.
